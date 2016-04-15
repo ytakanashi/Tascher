@@ -1,0 +1,119 @@
+﻿/*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
+	Tascher
+	Coded by x@rgs
+
+	This code is released under NYSL Version 0.9982
+	See NYSL_withfaq.TXT for further details.
+
+	「Tascher」は、マウスの移動とホイールの回転や
+	Migemoインクリメンタルサーチでウインドウを切り替えるソフトウェアです。
+#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*/
+
+
+・ソースコードについて
+ under NYSL Version 0.9982ですが、初心者が書いたものですので、
+ ・見れたものではありません。
+ ・整理していません(古いバージョンのコードそのまま!)。
+ ・参考になるような情報もありません。
+ ...残念!
+ ライセンスの条文については同梱の「NYSL_withfaq.TXT」をご覧下さいませ。
+
+
+・コンパイル方法
+ [Microsoft Visual C++ 2015]
+    ソリューションファイル「Tascher.sln」を開き、「ビルド」->「ソリューションのビルド」をクリックしてください。
+    *他のバージョンのVisual C++でコンパイルする場合、
+    「構成プロパティ」->「全般」->「プラットフォーム ツールセット」を変更してください。
+
+
+・Note
+ [Ver.1.60]
+     ・「button」メニュー系(idok,idcancel,idabort,idretry,idignore,idyes,idno)を追加。「xxへの変更を保存しますか?」等のMessageBox()を操作することができます。
+       ->Windows 7以降ではIDOK系はあまり使われない?ようなので削除。
+     ・HideListView()の処理を改善。リストビューをSW_MINIMIZEすることで、非表示時にフォーカスを保持したままになることがなくなりました。
+       ->リストビューを操作せずとも、メインウインドウをSetWindowPos(HWND_NOTOPMOST)で上手く処理できそう。
+     ・メニュー表示時にホットキーを押下すると、ウインドウリストは消えるものの、メニューが残ってしまう問題。
+       cogma氏作「cltc」も同様の問題あり。Takla氏作「窓替え」はメニュー表示中はウインドウリストは消えない仕様。
+            SetWindowPos(MenuWnd,HWND_NOTOPMOST,...);
+            SendMessage(hMenuWnd,WM_KEYDOWN,VK_ESCAPE,0);
+            SendMessage(hMenuWnd,WM_KEYDOWN,VK_MENU,0);
+            SendMessage(hListView,WM_CANCELMODE,0,0);
+       等々メニューを閉じる方法は多々あるものの、このままウインドウリストを非表示にすると、
+       Tascherがフォーカスを掴んだまま?になってしまう。
+       仕方がないので、タイマーを設定し、そこから再度HideListView()するように。
+     ・ウインドウが多数あると、一度も描画されない、つまりDrawItem()で行うウインドウタイトル取得処理が行われないアイテムが発生する不具合発見。
+       IncrementalSearch()でチェックするように。
+     ・Ver.1.58から検討中のプロセス再起動コマンド「restart」はやはり権限の処理が面倒に思えるので今回も見送り...
+     ・インクリメンタルサーチ「あいまい検索」を追加。「readme.txt」に対して「rdm」でマッチします。
+       Migemoとの組み合わせはあまり相性が良くなく(Tascherの問題?)、おすすめできません。
+     ・「候補が1つなら切り替えする/しない」をコマンド化。
+       通常は有効にしておき、「uniquewindow」で無効化->インクリメンタルサーチ->絞り込まれたウインドウに対してコマンド実行、とか使えそう。
+     ・背景画像の描画をBitBlt()/StretchBlt()/AlphaBlend()からGDI+のDrawImage()に変更。
+       透過PNGや透過GIFを使用することができるようになりました。
+     ・アイテム数が多い場合に、ListView_SetItemCountEx()すると、背景画像が一瞬スクロールしてしまう不具合。
+          SendMessage(hListView,WM_SETREDRAW,false,0);
+          ListView_SetItemCountEx(hListView,iCount,LVSICF_NOINVALIDATEALL|LVSICF_NOSCROLL);
+          ResizeListView(hMainWnd);
+          SendMessage(hListView,WM_SETREDRAW,true,0);
+          ListView_RedrawItems(hListView,0,iCount);
+       とすると回避できました。
+     ・インストーラ作成ソフトウェアを7-ZipからNSISに変更。ファイルサイズが半分近く減少しました。
+ [Ver.1.59]
+     ・ハングしているプログラムがあるとウインドウリスト操作が遅くなる/フリーズする不具合を避けるため、
+       自作関数IsWindowHung()をIsHungAppWindow()に置き替え、SendMessageTimeout()を用いるように。
+     ・マウスカーソルを四隅に素早く移動させると、マウスアウト判定されていなかったため、
+       ShowListView()の時点で判定するように。ただ、偶にすり抜けます...
+     ・背景画像を設定した状態でスクロールするとえらいことになります。
+       ->EnableWindow(hListView),SetFocus(hWnd)で解決?
+     ・PROCESSENTRY32のth32ParentProcessIDが既に他のプロセスで再利用されている場合に、誤って親として列挙してしまう不具合。
+       ->GetProcessTimes()で作成された時間を取得し、子より後であれば親とみなさないように。
+     ・Code::blocks用プロジェクトを削除しました。その他、少しだけソースコードを整理。
+     ・GDI+を使用し背景画像を読み込むように。PNGに対応しました。
+       /NODEFAULTLIBが有効であるなら、[C/C++]->[言語]->[ランタイム型情報を有効にする]を「いいえ(/GR-)」にすること。
+ [Ver.1.58]
+     ・便利(?)なコマンドをいくつか追加しました。「info」「copyname」「copytitle」「copycommandline」「copyinfo」「childprocess」「terminatetree」
+     ・子プロセス一覧機能「childprocess」はフリーズしたrecesをterminateするために実装^q^
+     ・Tascher.cppの行数がVer.1.40当時の2倍に。これからも旧来のソースをベースに気ままに書き殴り、ゆるりと改良を重ねていきます。
+     ・右クリックやCtrl+右クリックからコマンドメニューを呼び出すとメニューの下線が消えてしまう...
+       ->「コンピュータの簡単操作センター」->「キーボードを使いやすくします」->「ショートカットキーとアクセスキーに下線を表示します」を有効にすると表示されました。
+     ・コマンド「move」「size」実装。動作はしているものの、自信なし^q^
+ [Ver.1.57]
+     ・MMHook.dll内でPostMessage(HWND_BROADCAST,WM_NULL,0,0);していたため、
+       7-zip32.dll処理中にウインドウリストを表示させると書庫処理が中断してしまう不具合を修正。
+       Ver.1.56で修正したかった^q^
+ [Ver.1.56]
+     ・念願のMigemo検索実装。一文字入力するごとに検索していると負担が大きいため、タイマーでdelayを設定。
+     ・リサイズ時のちらつきはSetLayeredWindowAttributes(LWA_COLORKEY)で。弥縫策。
+       ->表示が重いので採用しないことに。
+ [Ver.1.55]
+     ・「マウスアウトで確定」オプションを追加。この設定が無効であるとき、フォーカスが外れるとリストが非表示になります。
+     ・「ショートカットキー」の設定ができるように。ホットキーコードをキー名にして保持しています。
+     ・「マウス」の設定ができるように。CommonSettings.hで定義されている列挙型をキー名にして保持しています。
+     ・NM_CLICKとNM_DBLCLKを判別するため、タイマーを使用。
+     ・ウインドウリストを移動させる方法、こっそり変更。(Ctrl+からAlt+)
+     ・前回の内容が表示される問題について、非表示時にSetLayeredWindowAttributes(),SetWindowPos()等々を詰め込み対策。
+ [Ver.1.50]
+     ・念願のインクリメンタルサーチ実装。
+     ・しかし、絞り込むごとにListView_SetItemCountEx()するとListView_SetBkImage()で設定した背景がちらつく(末尾のアイテムのみ?)ので、
+       背景を自前で描画することに。
+       ->LVS_EX_DOUBLEBUFFERを設定し忘れていたから?
+         AlphaBlend()による明るさ調整を反映した背景描画も実装したので、このまま放置で。
+     ・メインのコンパイラをVC++に。CRTに依存しないようにmemset(),memcpy()を自前で実装。
+     ・設定ファイルは過去のバージョンとの互換性がないので注意すること(2回目)。
+     ・通常行と選択行で別のフォントを指定できるように。オーナードローに変更した前バージョンで実装し忘れ。
+     ・外部DLLでWH_MOUSE_LLによりWM_MOUSEMOVEをフックし、本体に投げることでドラッグ中のマウスアウトも検出できるように。
+     ・ウインドウリストを表示させると、一瞬前回の内容が表示されてしまう。
+ [Ver.1.40]
+     ・ほとんど作り直した。
+     ・Makefileではなく、Code::Blocks用のプロジェクトファイルを同梱するようにした。
+     ・DLL作成で詰んだので、低レベルフックに変更。
+     ・リストビューを仮想&オーナードローの組み合わせに変更。
+     ・カラムが二つであること前提でコードを書いてしまったので、今後「ファイルパス」等のカラムが復活する可能性は低い。
+     ・壁紙を透過したり、半透明ブラシの採用も考えたが、x64版でのgdiplusのリンクがうまくいかないので断念。
+     ・設定ファイルは過去のバージョンとの互換性がないので注意すること。
+     ・偶に右クリックしてもキャンセルされず、ウインドウが切り替わる不具合あり。原因究明中。
+ [Ver.1.30]Alt+Tabの置き換えは完全ではないので注意する事。(Tacherの処理が優先されない状態で実行すると従来のAlt+Tabが表示される)
+ [Ver.1.25]フォント最大サイズを48にしていますが、普通は使用しないと思う。
+ [Ver.1.20]ファイル分割を行ってみた。Tascher.cのデスクトップアイコン取得は偶々動いているに過ぎないと思う。
+ [Ver.1.15]Makefile内のMINGW=$(MINGW_PATH)のコメントを外した。
+ [Ver.1.10]gcc用のbatファイルを非同梱に。

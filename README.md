@@ -6,7 +6,7 @@ Alt+Tabの連打や、タスクバーのクリックよりも、素早く、簡�
 マウス派の方、キーボード派の方、どちらにもおすすめです。
       
 ## Screenshot
-![Tascherメイン](/wiki/Images/Tascher_ss.gif)  
+![Tascherメイン](../..//wiki/Images/Tascher_ss.gif)  
       
 ## Download
 **[Download Binary Package / Installer](http://www16.atpages.jp/rayna/Tascher/)**
@@ -45,10 +45,10 @@ zip書庫ファイルの場合、「**Tascher\*.zip**」を適当なフォルダ
 
 右クリックや「`_`」キーを入力すると、コマンドメニューが表示されます。  
 ウインドウの最大化/最小化や、  
-![ウインドウ操作メニュー](/wiki/Images/Tascher_ss_Menu.png)  
+![ウインドウ操作メニュー](../../wiki/Images/Tascher_ss_Menu.png)  
   
 プロセス(子も含む)の優先度変更/強制終了等々を行うことができます。  
-![子プロセス操作メニュー](/wiki/Images/Tascher_ss_ChildProcessMenu.png)  
+![子プロセス操作メニュー](../../wiki/Images/Tascher_ss_ChildProcessMenu.png)  
   
 \* 上記ショートカットキーや機能は設定で変更することができます。  
 \* その他情報は「**[Readme.txt](/Readme.txt)**」をご覧ください。  

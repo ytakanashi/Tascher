@@ -1,5 +1,5 @@
 ﻿/*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.60
+	Tascher Ver.1.61
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982

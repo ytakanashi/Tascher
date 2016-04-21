@@ -2,7 +2,7 @@
 //cfgファイル操作
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.60
+	Tascher Ver.1.61
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -61,6 +61,10 @@ void WritePrivateProfile(HWND hWnd){
 	WritePrivateProfileInt(_T("ListView"),_T("MouseHover"),g_Config.ListView.bMouseHover,g_szPrivateProfile);
 	//タイムアウトで確定[動作]
 	WritePrivateProfileInt(_T("ListView"),_T("TimeOut"),g_Config.ListView.iTimeOut,g_szPrivateProfile);
+	//ドラッグ中であればマウスホバーで選択
+	WritePrivateProfileInt(_T("ListView"),_T("DragMouseHover"),g_Config.ListView.bDragMouseHover,g_szPrivateProfile);
+	//ドラッグ中であればタイムアウトで確定
+	WritePrivateProfileInt(_T("ListView"),_T("DragTimeOut"),g_Config.ListView.bDragTimeOut,g_szPrivateProfile);
 	//タスクバー相当の表示[動作]
 	WritePrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),g_Config.ListView.bTaskBarEquivalent,g_szPrivateProfile);
 	//2番目にアクティブなウインドウを選択[動作]
@@ -69,10 +73,15 @@ void WritePrivateProfile(HWND hWnd){
 	WritePrivateProfileInt(_T("ListView"),_T("Alpha"),g_Config.ListView.byAlpha,g_szPrivateProfile);
 	//アイコンなし(大)、アイコンなし(小)、小さなアイコン、大きなアイコン[表示項目]
 	WritePrivateProfileInt(_T("ListView"),_T("Icon"),g_Config.ListView.iIcon,g_szPrivateProfile);
+	//リスト作成時のアイコンを使用する
+	WritePrivateProfileInt(_T("ListView"),_T("CacheIcon"),g_Config.ListView.bCacheIcon,g_szPrivateProfile);
 	//デスクトップ[表示項目]
 	WritePrivateProfileInt(_T("ListView"),_T("DesktopItem"),g_Config.ListView.bDesktopItem,g_szPrivateProfile);
 	//キャンセル[表示項目]
 	WritePrivateProfileInt(_T("ListView"),_T("CancelItem"),g_Config.ListView.bCancelItem,g_szPrivateProfile);
+
+	//フレームを表示
+	WritePrivateProfileInt(_T("ListView"),_T("DialogFrame"),g_Config.ListView.bDialogFrame,g_szPrivateProfile);
 
 	//表示項目(カラム幅で決定)
 	//並び順
@@ -187,6 +196,10 @@ void WritePrivateProfile(HWND hWnd){
 
 	COLORREFToHex(szTmp,g_Config.SelectedItemDesign.clrTextBk);
 	WritePrivateProfileString(_T("SelectedItemDesign"),_T("BackColor"),szTmp,g_szPrivateProfile);
+
+
+	//除外するファイル名たち(;区切り)
+	WritePrivateProfileString(_T("Exclude"),_T("FileName"),g_Config.Exclude.szFileName,g_szPrivateProfile);
 	return;
 }
 
@@ -206,6 +219,10 @@ void ReadPrivateProfile(){
 	g_Config.ListView.bMouseHover=GetPrivateProfileInt(_T("ListView"),_T("MouseHover"),0,g_szPrivateProfile)!=0;
 	//タイムアウトで選択[動作]
 	g_Config.ListView.iTimeOut=GetPrivateProfileInt(_T("ListView"),_T("TimeOut"),0,g_szPrivateProfile);
+	//ドラッグ中であればマウスホバーで選択
+	g_Config.ListView.bDragMouseHover=GetPrivateProfileInt(_T("ListView"),_T("DragMouseHover"),1,g_szPrivateProfile)!=0;
+	//ドラッグ中であればタイムアウトで確定
+	g_Config.ListView.bDragTimeOut=GetPrivateProfileInt(_T("ListView"),_T("DragTimeOut"),1,g_szPrivateProfile)!=0;
 	//タスクバー相当の表示[動作]
 	g_Config.ListView.bTaskBarEquivalent=GetPrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),1,g_szPrivateProfile)!=0;
 	//2番目にアクティブなウインドウを選択[動作]
@@ -216,10 +233,15 @@ void ReadPrivateProfile(){
 
 	//アイコンなし(大)、アイコンなし(小)、小さなアイコン、大きなアイコン[表示項目]
 	g_Config.ListView.iIcon=GetPrivateProfileInt(_T("ListView"),_T("Icon"),LISTICON_BIG,g_szPrivateProfile);
+	//リスト作成時のアイコンを使用する
+	g_Config.ListView.bCacheIcon=GetPrivateProfileInt(_T("ListView"),_T("CacheIcon"),0,g_szPrivateProfile)!=0;
 	//デスクトップ[表示項目]
 	g_Config.ListView.bDesktopItem=GetPrivateProfileInt(_T("ListView"),_T("DesktopItem"),0,g_szPrivateProfile)!=0;
 	//キャンセル[表示項目]
 	g_Config.ListView.bCancelItem=GetPrivateProfileInt(_T("ListView"),_T("CancelItem"),0,g_szPrivateProfile)!=0;
+
+	//フレームを表示
+	g_Config.ListView.bDialogFrame=GetPrivateProfileInt(_T("ListView"),_T("DialogFrame"),1,g_szPrivateProfile)!=0;
 
 	//アイコン指定を正しい値に収める
 	g_Config.ListView.iIcon=(INRANGE(LISTICON_NO,g_Config.ListView.iIcon,LISTICON_BIG))?g_Config.ListView.iIcon:LISTICON_BIG;
@@ -275,7 +297,7 @@ void ReadPrivateProfile(){
 	}
 
 	//検索方法[インクリメンタルサーチ]
-	g_Config.IncrementalSearch.iMatchMode=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MatchMode"),MATCH_FORWARD,g_szPrivateProfile);
+	g_Config.IncrementalSearch.iMatchMode=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MatchMode"),MATCH_PARTICAL,g_szPrivateProfile);
 
 	//Migemoモード[インクリメンタルサーチ]
 	g_Config.IncrementalSearch.iMigemoMode=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MigemoMode"),MIGEMO_NO,g_szPrivateProfile);
@@ -296,7 +318,7 @@ void ReadPrivateProfile(){
 	g_Config.IncrementalSearch.iMigemoDelay=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MigemoDelay"),90,g_szPrivateProfile);
 
 	//Migemoモードを範囲内に収める
-	g_Config.IncrementalSearch.iMigemoMode=(INRANGE(MIGEMO_NO,g_Config.IncrementalSearch.iMigemoMode,MIGEMO_NODEFAULT))?g_Config.IncrementalSearch.iMigemoMode:MIGEMO_NO;
+	g_Config.IncrementalSearch.iMigemoMode=(INRANGE(MIGEMO_NO,g_Config.IncrementalSearch.iMigemoMode,MIGEMO_ALWAYS))?g_Config.IncrementalSearch.iMigemoMode:MIGEMO_ALWAYS;
 
 
 	//スタートアップに追加する(自動起動)
@@ -475,5 +497,14 @@ void ReadPrivateProfile(){
 	//フォントサイズを範囲内に収める
 	//範囲外であればMINIMUM_FONTSIZE(==0、フォントサイズ変更なし)
 	g_Config.SelectedItemDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.SelectedItemDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.SelectedItemDesign.iFontSize:MINIMUM_FONTSIZE;
+
+
+	//除外するファイル名たち(;区切り)
+	GetPrivateProfileString(_T("Exclude"),_T("FileName"),NULL,g_Config.Exclude.szFileName,ARRAY_SIZEOF(g_Config.Exclude.szFileName),g_szPrivateProfile);
+	//末尾に';'を追加
+	if(lstrlen(g_Config.Exclude.szFileName)&&
+	   g_Config.Exclude.szFileName[lstrlen(g_Config.Exclude.szFileName)-1]!=';'){
+		lstrcat(g_Config.Exclude.szFileName,_T(";"));
+	}
 	return;
 }

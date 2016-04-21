@@ -2,7 +2,7 @@
 //設定ダイアログ
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.60
+	Tascher Ver.1.61
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -746,8 +746,9 @@ BOOL CALLBACK GeneralTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 
 	static LPCTSTR lpszMigemoMode[]={
 		_T("使用しない"),
-		_T("デフォルトで有効"),
+		_T("小文字入力で有効"),
 		_T("大文字入力で有効"),
+		_T("常に有効"),
 	};
 
 	//Slider+Staticコントロール
@@ -1890,14 +1891,14 @@ BOOL CALLBACK DesignTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 						if(LOWORD(wParam)==ItemDesign_Table[i].uButtonId){
 							//フォント名
 							int iIndex=(int)SendDlgItemMessage(hDlg,IDC_COMBO_FONT,CB_FINDSTRING,(WPARAM)0,(LPARAM)ItemDesign_Table[i].pszFont);
-							if(iIndex==CB_ERR)iIndex=(int)SendDlgItemMessage(hDlg,IDC_COMBO_FONT,CB_FINDSTRING,(WPARAM)0,(LPARAM)g_szDefaultString);//デフォルト
+							if(iIndex==CB_ERR)iIndex=(int)SendDlgItemMessage(hDlg,IDC_COMBO_FONT,CB_FINDSTRING,(WPARAM)0,(LPARAM)g_szDefaultString);
 							SendDlgItemMessage(hDlg,IDC_COMBO_FONT,CB_SETCURSEL,(WPARAM)iIndex,(LPARAM)0);
 
 							//フォントサイズ
 							TCHAR szTmp[12]={};
 							wsprintf(szTmp,_T("%d"),*ItemDesign_Table[i].piFontSize);
 							iIndex=(int)SendDlgItemMessage(hDlg,IDC_COMBO_FONTSIZE,CB_FINDSTRING,(WPARAM)0,(LPARAM)szTmp);
-							if(iIndex==CB_ERR)iIndex=(int)SendDlgItemMessage(hDlg,IDC_COMBO_FONTSIZE,CB_FINDSTRING,(WPARAM)0,(LPARAM)g_szDefaultString);//デフォルト
+							if(iIndex==CB_ERR)iIndex=(int)SendDlgItemMessage(hDlg,IDC_COMBO_FONTSIZE,CB_FINDSTRING,(WPARAM)0,(LPARAM)g_szDefaultString);
 							SendDlgItemMessage(hDlg,IDC_COMBO_FONTSIZE,CB_SETCURSEL,(WPARAM)iIndex,(LPARAM)0);
 
 							//フォントスタイル

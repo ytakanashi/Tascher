@@ -34,5 +34,8 @@
     <ResourceCompile Include="resources\HookMouseMove.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
+    <ResourceCompile Include="resources\HookMouseMove64.rc">
+      <Filter>リソース ファイル</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

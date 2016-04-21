@@ -2,7 +2,7 @@
 //様々な便利関数
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.60
+	Tascher Ver.1.61
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -383,31 +383,39 @@ bool IsWindowHung(HWND hWnd){
 bool SetForegroundWindowEx(HWND hWnd){
 	bool bResult=false;
 	bool bHung=IsHungAppWindow(hWnd)!=0;
-	int iForegroundThreadId=0,iTargetThreadId=0;
+	DWORD dwCurrentThreadId=0,dwTargetThreadId=0;
 	DWORD dwTimeout=0;
 
 	//最小化されていたらもとに戻す
 	if(IsIconic(hWnd)){
-		ShowWindowAsync(hWnd,SW_RESTORE);
+		ShowWindow(hWnd,SW_RESTORE);
 	}
 
-	iForegroundThreadId=GetWindowThreadProcessId(GetForegroundWindow(),NULL);
-	iTargetThreadId=GetWindowThreadProcessId(hWnd,NULL);
+	dwCurrentThreadId=GetCurrentThreadId();
+	dwTargetThreadId=GetWindowThreadProcessId(hWnd,NULL);
 
-	if(iForegroundThreadId==iTargetThreadId||bHung){
-		BringWindowToTop(hWnd);
-		bResult=SetForegroundWindow(hWnd)!=0;
+	if(IsIconic(hWnd)){
+		//最小化されている場合まず元に戻す
+		ShowWindow(hWnd,SW_RESTORE);
+	}
+
+	if(!bHung){
+		for(int i=0;i<100&&hWnd!=GetForegroundWindow();i++){
+			//あの手この手
+			dwCurrentThreadId=GetCurrentThreadId();
+			dwTargetThreadId=GetWindowThreadProcessId(GetForegroundWindow(),NULL);
+			AttachThreadInput(dwCurrentThreadId,dwTargetThreadId,true);
+			SetWindowPos(hWnd,HWND_TOP,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE);
+			BringWindowToTop(hWnd);
+			AllowSetForegroundWindow(ASFW_ANY);
+			bResult=SetForegroundWindow(hWnd)!=0;
+			AttachThreadInput(dwCurrentThreadId,dwTargetThreadId,false);
+			Sleep(10);
+		}
 	}else{
 		//対象のウインドウが応答なしの場合、AttachThreadInput()とSetWindowPos()を実行すると巻き添えに
-		AttachThreadInput(iTargetThreadId,iForegroundThreadId,true);
-		SystemParametersInfo(SPI_GETFOREGROUNDLOCKTIMEOUT,0,&dwTimeout,0);
-		SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT,0,(LPVOID)0,0);
-		LockSetForegroundWindow(LSFW_UNLOCK);
-		SetWindowPos(hWnd,HWND_TOP,0,0,0,0,SWP_NOMOVE|SWP_NOSIZE);
 		BringWindowToTop(hWnd);
 		bResult=SetForegroundWindow(hWnd)!=0;
-		SystemParametersInfo(SPI_SETFOREGROUNDLOCKTIMEOUT,0,&dwTimeout,0);
-		AttachThreadInput(iTargetThreadId,iForegroundThreadId,false);
 	}
 	return bResult;
 }

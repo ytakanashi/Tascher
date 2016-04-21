@@ -2,7 +2,7 @@
 //共通ヘッダファイル
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.60
+	Tascher Ver.1.61
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -47,15 +47,15 @@
 
 #ifdef _DEBUG
 	#ifndef _WIN64
-		#define TASCHER_VERSION _T("Tascher Ver.1.60 <Debug>")
+		#define TASCHER_VERSION _T("Tascher Ver.1.61 <Debug>")
 	#else
-		#define TASCHER_VERSION _T("Tascher Ver.1.60 x64 <Debug>")
+		#define TASCHER_VERSION _T("Tascher Ver.1.61 x64 <Debug>")
 	#endif
 #else
 	#ifndef _WIN64
-		#define TASCHER_VERSION _T("Tascher Ver.1.60")
+		#define TASCHER_VERSION _T("Tascher Ver.1.61")
 	#else
-		#define TASCHER_VERSION _T("Tascher Ver.1.60 x64")
+		#define TASCHER_VERSION _T("Tascher Ver.1.61 x64")
 	#endif
 #endif
 

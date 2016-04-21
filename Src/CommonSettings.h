@@ -2,7 +2,7 @@
 //設定関係共通ヘッダファイル
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.60
+	Tascher Ver.1.61
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -61,8 +61,9 @@ enum{
 
 enum{
 	MIGEMO_NO=0,//使用しない
-	MIGEMO_DEFAULT,//デフォルトで有効
+	MIGEMO_DEFAULT,//小文字入力で有効
 	MIGEMO_NODEFAULT,//大文字入力で有効
+	MIGEMO_ALWAYS,
 };
 
 
@@ -351,7 +352,7 @@ static SHORTCUTKEYCMD_TABLE ShortcutKeyCmd_Table[]={
 	{
 		IDM_KEY_BS_STRING,
 		_T("bsstring"),
-		_T("インクリメンタルサーチの文字列を一つ削る"),
+		_T("インクリメンタルサーチの文字列を1つ削る"),
 	},
 	{
 		IDM_KEY_IDLE_PRIORITY,
@@ -463,6 +464,12 @@ struct LISTVIEW{
 	//タイムアウトで確定[動作]
 	int iTimeOut;
 
+	//ドラッグ中であればマウスホバーで選択
+	bool bDragMouseHover;
+
+	//ドラッグ中であればタイムアウトで確定
+	bool bDragTimeOut;
+
 	//タスクバー相当の表示[動作]
 	bool bTaskBarEquivalent;
 
@@ -475,6 +482,9 @@ struct LISTVIEW{
 	//表示項目
 	//アイコン[表示項目]
 	int iIcon;
+
+	//リスト作成時のアイコンを使用する
+	bool bCacheIcon;
 
 	//「デスクトップ」を表示する[表示項目]
 	bool bDesktopItem;
@@ -490,6 +500,9 @@ struct LISTVIEW{
 
 	//ウインドウタイトルカラムの幅
 	int iWindowTitleWidth;
+
+	//フレームを表示
+	bool bDialogFrame;
 };
 
 struct SHORTCUTKEY{
@@ -568,6 +581,11 @@ struct BACKGROUND{
 	BYTE byAlpha;
 };
 
+struct EXCLUDE{
+	//除外するファイル名たち(;区切り)
+	TCHAR szFileName[MAX_PATH];
+};
+
 struct CONFIG{
 	//リストビュー全般
 	struct LISTVIEW ListView;
@@ -590,6 +608,9 @@ struct CONFIG{
 
 	//背景画像
 	struct BACKGROUND Background;
+
+	//除外アイテム
+	struct EXCLUDE Exclude;
 
 	//スタートアップに追加する(自動起動)
 	bool bAutoStart;

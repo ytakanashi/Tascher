@@ -2,7 +2,7 @@
 //メイン
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.60
+	Tascher Ver.1.61
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -123,6 +123,7 @@ enum WINDOWLIST_STATUS{
 	WLS_CREATING,
 	WLS_CREATED,
 	WLS_DISPLAYED,
+	WLS_SWITCHING,
 }g_eWindowListStatus;
 
 //背景画像が有効である
@@ -152,6 +153,7 @@ typedef struct{
 //[ウインドウリスト関係]
 //表示項目
 typedef struct{
+	HICON hIcon;//アイコン
 	TCHAR szFileName[MAX_PATH];//ファイル名
 	TCHAR szWindowTitle[MAX_PATH];//ウインドウタイトル
 
@@ -179,6 +181,9 @@ LPWINDOW_INFO* g_DisplayWindowInfo;
 
 //表示するウインドウ数
 int g_iDisplayWindowCount;
+
+//フレームの幅、高さ
+LONG g_lFrameWidth,g_lFrameHeight;
 
 #define INCREMENTAL_SEARCH_BUFFER 32
 TCHAR g_szSearchString[INCREMENTAL_SEARCH_BUFFER];
@@ -303,6 +308,8 @@ void MouseLeaveEvent(HWND hWnd);
 
 //列挙対象のウインドウである
 bool IsWindowAvailable(HWND hWnd);
+//除外対象のファイル名である
+bool IsExcludeFileName(const TCHAR* szFileName);
 //ウインドウハンドルからファイル名を取得する
 bool GetFileNameFromWindowHandle(HWND hWnd,LPTSTR lpFileName,DWORD dwFileNameLength);
 #if 0
@@ -345,6 +352,9 @@ HICON GetSmallIcon(HWND hWnd);
 
 //あの手この手でアイコンを取得[大きい]
 HICON GetLargeIcon(HWND hWnd);
+
+//ウインドウのアイコンを取得
+HICON GetWindowIcon(HWND hWnd,bool bDesktopItem=false,bool bCancelItem=false);
 
 //リストビューアイテムを描画
 bool DrawItem(LPDRAWITEMSTRUCT lpDraw);
@@ -873,6 +883,39 @@ bool IsWindowAvailable(HWND hWnd){
 	return false;
 }
 
+//除外対象のファイル名である
+bool IsExcludeFileName(const TCHAR* szFileName){
+	//末尾に';'を付加しておくこと
+	const TCHAR* p1=g_Config.Exclude.szFileName;
+	const TCHAR* p2=NULL;
+	int iLength=lstrlen(szFileName);
+
+	while(*p1){
+		//';'までp2を進める
+		for(p2=p1+1;*p2&&*p2!=';';p2++);
+		if(*p2=='\0')break;
+
+		//対象と同じ長さ
+		if(p2-p1==iLength){
+			//文字列チェック開始
+			while(p1!=p2){
+				if(ChrCmpI(*p1,szFileName[iLength-(p2-p1)])==0){
+					//同じ文字
+					p1++;
+				}else{
+					break;
+				}
+			}
+			if(p1==p2){
+				//一致
+				return true;
+			}
+		}
+		p1=p2+1;
+	}
+	return false;
+}
+
 //ウインドウハンドルからファイル名を取得する
 bool GetFileNameFromWindowHandle(HWND hWnd,LPTSTR lpFileName,DWORD dwFileNameLength){
 	bool bResult=false;
@@ -946,12 +989,20 @@ BOOL CALLBACK EnumWindowsProc(HWND hWnd,LPARAM lParam){
 #endif
 
 	if(IsWindowAvailable(hWnd)){
-
 		//ファイル名
 		//ファイル名だけ取り出す
 		lstrcpy(WindowInfo.szFileName,PathFindFileName(szFilePath));
 		//拡張子を除く
 		PathRemoveExtension(WindowInfo.szFileName);
+
+		//除外対象のファイル名か否か
+		if(lstrlen(g_Config.Exclude.szFileName)&&
+		   IsExcludeFileName(WindowInfo.szFileName)){
+			return TRUE;
+		}
+
+		//アイコン
+		WindowInfo.hIcon=GetWindowIcon(hWnd);
 
 		//ウインドウタイトル
 		//取得はDrawItem()で
@@ -1055,6 +1106,7 @@ void AddDesktopItem(){
 
 #if 1
 	//「デスクトップ」をグローバルな構造体に追加
+	wiDesktop.hIcon=GetWindowIcon(NULL,true,false);
 	lstrcpy(wiDesktop.szFileName,_T("Desktop"));
 	lstrcpy(wiDesktop.szWindowTitle,_T("デスクトップ"));
 	wiDesktop.bDesktopItem=true;
@@ -1100,6 +1152,7 @@ void AddDesktopItem(){
 void AddCancelItem(){
 	WINDOW_INFO wiCancel={};
 
+	wiCancel.hIcon=GetWindowIcon(NULL,false,true);
 	lstrcpy(wiCancel.szFileName,_T("Cancel"));
 	lstrcpy(wiCancel.szWindowTitle,_T("キャンセル"));
 	//「キャンセル」をグローバルな構造体に追加
@@ -1136,7 +1189,9 @@ void ResizeListView(HWND hWnd){
 	iHeight=iItemHeight*g_iDisplayWindowCount;
 
 	if(iHeight>GetSystemMetrics(SM_CYSCREEN)){
-		iHeight=GetSystemMetrics(SM_CYSCREEN)-iItemHeight*3;//ある程度余裕を持たせる
+		int iDiff=GetSystemMetrics(SM_CYSCREEN)-iItemHeight*3;
+		//一行分の高さの倍数に切り下げ
+		iHeight=(iDiff%iItemHeight)?((iDiff-1)/iItemHeight)*iItemHeight:iDiff;
 	}
 
 	RECT rcListView;
@@ -1147,7 +1202,8 @@ void ResizeListView(HWND hWnd){
 		SetWindowPos(g_hMainWnd,
 					 NULL,
 					 0,0,
-					 iWidth,iHeight,
+					 (!g_Config.ListView.bDialogFrame)?iWidth:iWidth+g_lFrameWidth,
+					 (!g_Config.ListView.bDialogFrame)?iHeight:iHeight+g_lFrameHeight,
 					 SWP_NOMOVE|SWP_NOZORDER);
 	}else{
 		//リストビューを先にリサイズして親の背景を表示させない
@@ -1160,7 +1216,8 @@ void ResizeListView(HWND hWnd){
 		SetWindowPos(g_hMainWnd,
 					 NULL,
 					 0,0,
-					 iWidth,iHeight,
+					 (!g_Config.ListView.bDialogFrame)?iWidth:iWidth+g_lFrameWidth,
+					 (!g_Config.ListView.bDialogFrame)?iHeight:iHeight+g_lFrameHeight,
 					 SWP_NOMOVE|SWP_NOZORDER);
 	}
 
@@ -1469,6 +1526,7 @@ void HideListView(){
 	if(g_eWindowListStatus==WLS_HIDE)return;
 
 	if(InterlockedCompareExchange(&lInterlockedFlag,TRUE,FALSE)==FALSE){
+		if(g_eWindowListStatus==WLS_HIDE)return;
 
 		if(g_hMenuWnd&&IsWindowVisible(g_hMenuWnd)){
 			while(IsWindowVisible(g_hMenuWnd)){
@@ -1498,16 +1556,23 @@ void HideListView(){
 		//ツールチップ非表示
 		ShowToolTip(g_hListView);
 
-		//ウインドウを透明に
-		if(g_Config.ListView.byAlpha){
+		if(g_Config.ListView.byAlpha!=0&&
+		   g_Config.ListView.byAlpha!=255){
+			//ウインドウを透明に
 			SetLayeredWindowAttributes(g_hMainWnd,0,0,LWA_ALPHA);
 		}
 
-		ListView_SelectNone(g_hListView);
+		//アイコン解放
+		for(int i=0;i<g_iWindowCount;++i){
+			DestroyIcon(g_DisplayWindowInfo[i]->hIcon);
+			g_DisplayWindowInfo[i]->hIcon=NULL;
+		}
 
 		for(int i=0;i<lstrlen(g_szSearchString);++i){
 			g_szSearchString[i]='\0';
 		}
+
+		g_iWindowCount=g_iDisplayWindowCount=0;
 
 		ListView_SetItemCountEx(g_hListView,0,LVSICF_NOINVALIDATEALL|LVSICF_NOSCROLL);
 
@@ -1516,25 +1581,20 @@ void HideListView(){
 		g_DisplayWindowInfo=NULL;
 		g_WindowInfo=NULL;
 
-		g_iWindowCount=g_iDisplayWindowCount=0;
-
-		if(g_Config.ListView.byAlpha){
-			SetWindowPos(g_hMainWnd,
-						 NULL,
-						 0,0,
-						 0,0,
-						 SWP_NOMOVE|SWP_NOZORDER);
-		}
-
-		//最前面表示解除
-		//SWP_HIDEWINDOWは使用せず、ShowWindow(SW_HIDE)すること
 		SetWindowPos(g_hMainWnd,
-					 HWND_NOTOPMOST,
+					 NULL,
+					 0,0,
+					 0,0,
+					 SWP_NOMOVE|SWP_NOZORDER);
+
+		SetWindowPos(g_hMainWnd,
+					 HWND_BOTTOM,
 					 0,0,0,0,SWP_NOMOVE|SWP_NOSIZE);
 
 		ShowWindow(g_hMainWnd,SW_HIDE);
 
-		if(g_Config.ListView.byAlpha){
+		if(g_Config.ListView.byAlpha!=0&&
+		   g_Config.ListView.byAlpha!=255){
 			//不透明度を元に戻す
 			SetLayeredWindowAttributes(g_hMainWnd,0,g_Config.ListView.byAlpha,LWA_ALPHA);
 		}
@@ -1556,6 +1616,11 @@ void HideListView(){
 void TaskSwitch(LPWINDOW_INFO lpWindowInfo){
 	if(lpWindowInfo==NULL)return;
 
+	WINDOWLIST_STATUS eWindowListStatus=g_eWindowListStatus;
+
+	//WM_ACTIVATEAPP対策
+	g_eWindowListStatus=WLS_SWITCHING;
+
 	if(lpWindowInfo->bDesktopItem){
 		//「デスクトップ」
 		SendMessage(g_hMainWnd,WM_COMMAND,MAKEWPARAM(IDM_KEY_DESKTOP,0),0);
@@ -1565,14 +1630,12 @@ void TaskSwitch(LPWINDOW_INFO lpWindowInfo){
 	}else{
 		//通常のウインドウ
 		if(!IsHungAppWindow(lpWindowInfo->hWnd)){
-			if(IsIconic(lpWindowInfo->hWnd)){
-				//最小化されている場合まず元に戻す
-				ShowWindow(lpWindowInfo->hWnd,SW_RESTORE);
-			}
 			SetForegroundWindowEx(lpWindowInfo->hWnd);
 			SetFocus(lpWindowInfo->hWnd);
 		}
 	}
+	g_eWindowListStatus=eWindowListStatus;
+
 	HideListView();
 	return;
 }
@@ -1613,8 +1676,14 @@ HICON GetSmallIcon(HWND hWnd){
 
 	if(hWnd==NULL||IsHungAppWindow(hWnd))return NULL;
 
-	//300msで支度しな!
-	SendMessageTimeout(hWnd,WM_GETICON,ICON_SMALL,0,SMTO_ABORTIFHUNG,300,(PDWORD_PTR)&hIcon);
+	//250msで支度しな!
+	if(!SendMessageTimeout(hWnd,WM_GETICON,ICON_SMALL,0,SMTO_ABORTIFHUNG,250,(PDWORD_PTR)&hIcon)){
+		DWORD dwError=GetLastError();
+
+		if(dwError==ERROR_SUCCESS||dwError==ERROR_TIMEOUT){
+			return LoadIcon(NULL,IDI_APPLICATION);
+		}
+	}
 	if(hIcon==NULL){
 		hIcon=(HICON)GetClassLongPtr(hWnd,GCLP_HICONSM);
 	}
@@ -1631,14 +1700,55 @@ HICON GetLargeIcon(HWND hWnd){
 
 	if(hWnd==NULL||IsHungAppWindow(hWnd))return NULL;
 
-	//300msで支度しな!
-	SendMessageTimeout(hWnd,WM_GETICON,ICON_BIG,0,SMTO_ABORTIFHUNG,300,(PDWORD_PTR)&hIcon);
+	//250msで支度しな!
+	if(!SendMessageTimeout(hWnd,WM_GETICON,ICON_BIG,0,SMTO_ABORTIFHUNG,250,(PDWORD_PTR)&hIcon)){
+		DWORD dwError=GetLastError();
+
+		if(dwError==ERROR_SUCCESS||dwError==ERROR_TIMEOUT){
+			return LoadIcon(NULL,IDI_APPLICATION);
+		}
+	}
 	if(hIcon==NULL){
 		hIcon=(HICON)GetClassLongPtr(hWnd,GCLP_HICON);
 	}
 	if(hIcon==NULL){
 		HWND hParent=GetParent(hWnd);
 		if(IsWindowVisible(hParent))return GetLargeIcon(hParent);
+	}
+	return hIcon;
+}
+
+//ウインドウのアイコンを取得
+HICON GetWindowIcon(HWND hWnd,bool bDesktopItem,bool bCancelItem){
+	HICON hIcon=NULL;
+
+	if(g_Config.ListView.iIcon!=LISTICON_NO){
+		if(!IsHungAppWindow(hWnd)||
+		   bDesktopItem||
+		   bCancelItem){
+			if(g_Config.ListView.iIcon>LISTICON_NO_SMALL){
+				if(bDesktopItem){
+					//「デスクトップ」アイコンを読み込む
+					hIcon=GetDesktopIcon(g_Config.ListView.iIcon==LISTICON_SMALL);
+				}else if(bCancelItem){
+					//「キャンセル」アイコンを読み込む
+					hIcon=LoadIcon(NULL,IDI_ERROR);
+				}else{
+					if(g_Config.ListView.iIcon==LISTICON_SMALL){
+						hIcon=GetSmallIcon(hWnd);
+					}
+					if(hIcon==NULL){
+						//小さいアイコンが取得できない場合、大きなアイコンを利用
+						hIcon=GetLargeIcon(hWnd);
+					}
+
+					//デフォルトのアプリケーションアイコンを取得
+					if(hIcon==NULL){
+						hIcon=LoadIcon(NULL,IDI_APPLICATION);
+					}
+				}
+			}
+		}
 	}
 	return hIcon;
 }
@@ -1657,8 +1767,6 @@ bool DrawItem(LPDRAWITEMSTRUCT lpDraw){
 	HGDIOBJ hOld=NULL;
 #endif
 
-	if(g_hListView!=hListView)return false;
-	if(g_eWindowListStatus!=WLS_DISPLAYED)return false;
 	if(lpDraw->CtlType!=ODT_LISTVIEW)return false;
 	if(!g_iDisplayWindowCount||int(uItemID+1)>g_iDisplayWindowCount)return false;
 
@@ -1793,12 +1901,10 @@ bool DrawItem(LPDRAWITEMSTRUCT lpDraw){
 				break;
 
 			case LISTITEM_WINDOWTITLE:
-				//ウインドウタイトル取得
 				if(!g_DisplayWindowInfo[uItemID]->bDesktopItem&&
-				   !g_DisplayWindowInfo[uItemID]->bCancelItem&&
-				   !IsHungAppWindow(g_DisplayWindowInfo[uItemID]->hWnd)){
-					//300msで支度しな!
-					SendMessageTimeout(g_DisplayWindowInfo[uItemID]->hWnd,WM_GETTEXT,MAX_PATH,(LPARAM)g_DisplayWindowInfo[uItemID]->szWindowTitle,SMTO_ABORTIFHUNG,300,NULL);
+				   !g_DisplayWindowInfo[uItemID]->bCancelItem){
+					//ウインドウタイトル取得
+					InternalGetWindowText(g_DisplayWindowInfo[uItemID]->hWnd,g_DisplayWindowInfo[uItemID]->szWindowTitle,MAX_PATH);
 				}
 				DrawText(hDC,g_DisplayWindowInfo[uItemID]->szWindowTitle,-1,&rc,DT_LEFT|DT_VCENTER|DT_SINGLELINE|DT_END_ELLIPSIS);
 				break;
@@ -1811,50 +1917,31 @@ bool DrawItem(LPDRAWITEMSTRUCT lpDraw){
 		SelectObject(hDC,hOldFont);
 	}
 
-	//アイコンを描写する
-	if(g_Config.ListView.iIcon!=LISTICON_NO){
-		if(!IsHungAppWindow(g_DisplayWindowInfo[uItemID]->hWnd)||
-		   g_DisplayWindowInfo[uItemID]->bDesktopItem||
-		   g_DisplayWindowInfo[uItemID]->bCancelItem){
-			if(g_Config.ListView.iIcon>LISTICON_NO_SMALL){
-				if(g_DisplayWindowInfo[uItemID]->bDesktopItem){
-					//「デスクトップ」アイコンを読み込む
-					hIcon=GetDesktopIcon(g_Config.ListView.iIcon==LISTICON_SMALL);
-				}else if(g_DisplayWindowInfo[uItemID]->bCancelItem){
-					//「キャンセル」アイコンを読み込む
-					hIcon=LoadIcon(NULL,IDI_ERROR);
-				}else{
-					if(g_Config.ListView.iIcon==LISTICON_SMALL){
-						hIcon=GetSmallIcon(g_DisplayWindowInfo[uItemID]->hWnd);
-					}
-					if(hIcon==NULL){
-						//小さいアイコンが取得できない場合、大きなアイコンを利用
-						hIcon=GetLargeIcon(g_DisplayWindowInfo[uItemID]->hWnd);
-					}
-
-					//デフォルトのアプリケーションアイコンを取得
-					if(hIcon==NULL){
-						hIcon=LoadIcon(NULL,IDI_APPLICATION);
-					}
-				}
-
-				if(hIcon){
-					ListView_GetItemRect(hListView,uItemID,&rc,LVIR_ICON);
-					DrawIconEx(hDC,
-							   3/*rc.left*/,
-							   rc.top,
-							   hIcon,
-							   (g_Config.ListView.iIcon==LISTICON_SMALL)?16:32,
-							   (g_Config.ListView.iIcon==LISTICON_SMALL)?16:32,
-							   0,0,
-							   DI_IMAGE|DI_MASK);
-				}
-
-				DestroyIcon(hIcon);
-				hIcon=NULL;
-			}
-		}
+	if(g_DisplayWindowInfo[uItemID]->hIcon==NULL){
+		g_DisplayWindowInfo[uItemID]->hIcon=
+			GetWindowIcon(g_DisplayWindowInfo[uItemID]->hWnd,
+						  g_DisplayWindowInfo[uItemID]->bDesktopItem,
+						  g_DisplayWindowInfo[uItemID]->bCancelItem);
 	}
+
+	if(g_DisplayWindowInfo[uItemID]->hIcon){
+		//アイコンを描写する
+		ListView_GetItemRect(hListView,uItemID,&rc,LVIR_ICON);
+		DrawIconEx(hDC,
+				   3/*rc.left*/,
+				   rc.top,
+				   g_DisplayWindowInfo[uItemID]->hIcon,
+				   (g_Config.ListView.iIcon==LISTICON_SMALL)?16:32,
+				   (g_Config.ListView.iIcon==LISTICON_SMALL)?16:32,
+				   0,0,
+				   DI_IMAGE|DI_MASK);
+	}
+
+	if(!g_Config.ListView.bCacheIcon){
+		DestroyIcon(g_DisplayWindowInfo[uItemID]->hIcon);
+		g_DisplayWindowInfo[uItemID]->hIcon=NULL;
+	}
+
 #if BACKGROUND_NO_GDIPLUS
 	SelectObject(hMem,hOld);
 	DeleteDC(hMem);
@@ -1885,7 +1972,7 @@ bool Match(int iMatchMode,const TCHAR* szTargetString,const TCHAR* szSearchStrin
 			}
 			if(bEnd)break;
 
-			if(CharLower((LPTSTR)*pszSearchString)==CharLower((LPTSTR)*(pszTargetString++))){
+			if(ChrCmpI(*pszSearchString,*(pszTargetString++))==0){
 				pszSearchString++;
 			}
 		}
@@ -1995,12 +2082,10 @@ bool IncrementalSearch(TCHAR* szSearchString,int iMatchMode,bool bFirstColumnOnl
 	--iSearchStringBack;
 
 	//選択中アイテム保存
+	bool bSelected=false;
 	HWND hSelectedItemWnd=NULL;
-
-	{
-		int iSelectedItem=ListView_GetSelectedItem(g_hListView);
-		hSelectedItemWnd=(iSelectedItem!=-1)?g_DisplayWindowInfo[iSelectedItem]->hWnd:NULL;
-	}
+	int iSelectedItem=ListView_GetSelectedItem(g_hListView);
+	hSelectedItemWnd=(iSelectedItem!=-1)?g_DisplayWindowInfo[iSelectedItem]->hWnd:NULL;
 
 #if 0
 	//表示非表示問わずすべてのウインドウを対象に検索する場合
@@ -2020,8 +2105,7 @@ bool IncrementalSearch(TCHAR* szSearchString,int iMatchMode,bool bFirstColumnOnl
 	for(int i=0;i<iDisplayWindowCount;++i){
 		//未取得のウインドウタイトル処理
 		if(g_DisplayWindowInfo[i]->szWindowTitle[0]=='\0'){
-			//300msで支度しな!
-			SendMessageTimeout(g_DisplayWindowInfo[i]->hWnd,WM_GETTEXT,MAX_PATH,(LPARAM)g_DisplayWindowInfo[i]->szWindowTitle,SMTO_ABORTIFHUNG,300,NULL);
+			InternalGetWindowText(g_DisplayWindowInfo[i]->hWnd,g_DisplayWindowInfo[i]->szWindowTitle,MAX_PATH);
 		}
 
 		DisplayWindowInfoBak[i]=g_DisplayWindowInfo[i];
@@ -2154,6 +2238,7 @@ bool IncrementalSearch(TCHAR* szSearchString,int iMatchMode,bool bFirstColumnOnl
 			for(int i=0;i<g_iDisplayWindowCount;++i){
 				if(g_DisplayWindowInfo[i]->hWnd==hSelectedItemWnd){
 					ListView_SelectItem(g_hListView,i);
+					bSelected=true;
 					break;
 				}
 			}
@@ -2232,8 +2317,12 @@ bool IncrementalSearch(TCHAR* szSearchString,int iMatchMode,bool bFirstColumnOnl
 	HeapFree(g_hHeapWindowInfo,0,DisplayWindowInfoBak);
 	DisplayWindowInfoBak=NULL;
 
-	if(ListView_GetSelectedItem(g_hListView)==-1){
-		ListView_SelectItem(g_hListView,0);
+	if(!bSelected||ListView_GetSelectedItem(g_hListView)==-1){
+		//順序が近いウインドウを選択
+		int iItem=(g_iDisplayWindowCount>1&&iDisplayWindowCount>1)?(((g_iDisplayWindowCount-1)*iSelectedItem)*10/(iDisplayWindowCount-1)+5)/10
+			:0;
+
+		ListView_SelectItem(g_hListView,INRANGE(0,iItem,g_iDisplayWindowCount-1)?iItem:0);
 	}
 
 	ShowToolTip(g_hListView,ID_TOOLTIP_SEARCH,szSearchString);
@@ -2368,21 +2457,22 @@ LRESULT CALLBACK CtrlAHookProc(int nCode,WPARAM wParam,LPARAM lParam){
 LRESULT CALLBACK ListProc(HWND hListView, UINT uMsg, WPARAM wParam, LPARAM lParam){
 	if(g_bDisable)return CallWindowProc(DefListViewProc,hListView,uMsg,wParam,lParam);
 
-	static bool bMouseIn;
 	static bool bMenuLoop;
+	static bool bMouseIn;
 	static bool bMouseTracking;
 
 	switch(uMsg){
 		case WM_ERASEBKGND:
 			//ちらつき防止
 			return FALSE;
-
+#if 0
 		case WM_NCHITTEST:
-			//Ctrl+ドラッグでウインドウの移動
+			//Alt+ドラッグでウインドウの移動
 			if(GetAsyncKeyState(VK_MENU)&0x8000){
 				return HTTRANSPARENT;
 			}
 			break;
+#endif
 
 		case WM_ENTERMENULOOP:
 			bMenuLoop=true;
@@ -2404,7 +2494,7 @@ LRESULT CALLBACK ListProc(HWND hListView, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 		case WM_CHAR:
 			if(g_Config.ListView.iTimeOut>0||
-			   GetAsyncKeyState(VK_LBUTTON)&0x8000){
+			   g_Config.ListView.bDragTimeOut&&GetAsyncKeyState(VK_LBUTTON)&0x8000){
 				//タイムアウトで確定するためタイマーを設定
 				SetTimer(g_hListView,
 						 MAKEWPARAM(IDM_KEY_SWITCH,ListView_GetSelectedItem(g_hListView)),
@@ -2432,7 +2522,8 @@ LRESULT CALLBACK ListProc(HWND hListView, UINT uMsg, WPARAM wParam, LPARAM lPara
 				   g_Config.IncrementalSearch.iMigemoMode!=MIGEMO_NO){
 					if(g_szSearchString[0]=='\0'){
 						g_bMigemoSearch=(!bShift&&g_Config.IncrementalSearch.iMigemoMode==MIGEMO_DEFAULT)||
-							(bShift&&g_Config.IncrementalSearch.iMigemoMode==MIGEMO_NODEFAULT);
+							(bShift&&g_Config.IncrementalSearch.iMigemoMode==MIGEMO_NODEFAULT)||
+								g_Config.IncrementalSearch.iMigemoMode==MIGEMO_ALWAYS;
 					}
 
 					if(!g_Config.IncrementalSearch.bMigemoCaseSensitive){
@@ -2512,6 +2603,7 @@ LRESULT CALLBACK ListProc(HWND hListView, UINT uMsg, WPARAM wParam, LPARAM lPara
 					RECT rc={};
 
 					GetCursorPos(&pt);
+
 					if(ptBak.x&&ptBak.y){
 						//IDM_KEY_NEXT等々で末尾->先頭移動となるとWM_MOUSEMOVEが飛んでくる?のでbreak
 						if(pt.x==ptBak.x||pt.y==ptBak.y){
@@ -2519,8 +2611,9 @@ LRESULT CALLBACK ListProc(HWND hListView, UINT uMsg, WPARAM wParam, LPARAM lPara
 							break;
 						}
 					}
+
 					ptBak=pt;
-					GetWindowRect(hListView,&rc);
+					GetWindowRect(g_hMainWnd,&rc);
 
 					if(PtInRect(&rc,pt)){
 						bMouseIn=true;
@@ -2531,7 +2624,7 @@ LRESULT CALLBACK ListProc(HWND hListView, UINT uMsg, WPARAM wParam, LPARAM lPara
 						if(IsWindowVisible(g_hToolTipInfo))break;
 
 						if(g_Config.ListView.bMouseHover||
-						   GetAsyncKeyState(VK_LBUTTON)&0x8000){
+						   g_Config.ListView.bDragMouseHover&&GetAsyncKeyState(VK_LBUTTON)&0x8000){
 							int iIndex=ListView_GetHitItem(hListView);
 							if(iIndex<0)break;
 #if 0
@@ -2566,7 +2659,7 @@ LRESULT CALLBACK ListProc(HWND hListView, UINT uMsg, WPARAM wParam, LPARAM lPara
 					if(IsWindowVisible(g_hToolTipInfo))break;
 
 					if(g_Config.ListView.iTimeOut>0||
-					   GetAsyncKeyState(VK_LBUTTON)&0x8000){
+					   g_Config.ListView.bDragTimeOut&&GetAsyncKeyState(VK_LBUTTON)&0x8000){
 
 						//タイムアウトで確定
 						int iSelectedItem=ListView_GetSelectedItem(hListView);
@@ -2614,8 +2707,7 @@ LRESULT CALLBACK ListProc(HWND hListView, UINT uMsg, WPARAM wParam, LPARAM lPara
 		}
 
 		case WM_MOUSELEAVE:{
-			bMouseIn=false;
-			bMouseTracking=false;
+			bMouseIn=bMouseTracking=false;
 			//マウスカーソルがウインドウ外に移動した場合
 			if(g_eWindowListStatus!=WLS_DISPLAYED)break;
 
@@ -2679,8 +2771,11 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 
 	switch(uMsg){
 		case WM_NCHITTEST:
+			//Aeroが有効だとちらつく?(DWMとマウスフックの相性が悪い?)ので機能廃止
 			//ウインドウの移動
-			return HTCAPTION;
+//			return HTCAPTION;
+			//WS_THICKFRAMEでもサイズ変更させないため
+			return FALSE;
 
 		case WM_ERASEBKGND:
 			//ちらつき防止
@@ -2694,6 +2789,23 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 			InitCommonControlsEx(&ic);
 
 			CoInitialize(NULL);
+
+			{
+				//フレームの幅と高さを計算
+				RECT rcWindow,rcClient;
+
+				GetClientRect(hWnd,&rcClient);
+				rcWindow=rcClient;
+				AdjustWindowRectEx(&rcWindow,(DWORD)GetWindowLongPtr(hWnd,GWL_STYLE),false,(DWORD)GetWindowLongPtr(hWnd,GWL_EXSTYLE));
+				g_lFrameWidth=((rcWindow.right-rcWindow.left)-(rcClient.right-rcClient.left));
+				g_lFrameHeight=((rcWindow.bottom-rcWindow.top)-(rcClient.bottom-rcClient.top));
+			}
+
+			if(!g_Config.ListView.bDialogFrame){
+				//フレーム削除
+				SetWindowLongPtr(hWnd,GWL_EXSTYLE,GetWindowLongPtr(hWnd,GWL_EXSTYLE)&~WS_EX_WINDOWEDGE);
+				SetWindowLongPtr(hWnd,GWL_STYLE,GetWindowLongPtr(hWnd,GWL_STYLE)&~WS_DLGFRAME);
+			}
 
 			//リストビューを作成
 			g_hListView=CreateWindowEx(WS_EX_ACCEPTFILES,
@@ -2884,6 +2996,78 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 				//「無効」メニューのチェックを設定
 				mii.fState=(g_bDisable?MFS_CHECKED:MFS_UNCHECKED);
 				SetMenuItemInfo(mTray.hSubMenu,IDM_MENU_DISABLE,false,&mii);
+			}else if((HMENU)wParam==mMainCmd.hSubMenu||
+					 (HMENU)wParam==mIncrementalSearchCmd.hSubMenu||
+					 (HMENU)wParam==mWindowCmd.hSubMenu||
+					 (HMENU)wParam==mProcessCmd.hSubMenu||
+					 (HMENU)wParam==hChildProcessMenu){
+				//forwardmatch
+				mii.fState=(g_iMatchMode==MATCH_FORWARD?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_FORWARD_MATCH,false,&mii);
+				//partialmatch
+				mii.fState=(g_iMatchMode==MATCH_PARTICAL?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_PARTIAL_MATCH,false,&mii);
+				//flexmatch
+				mii.fState=(g_iMatchMode==MATCH_FLEX?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_FLEX_MATCH,false,&mii);
+				//searchscope
+				mii.fState=(!g_bFirstColumnOnly?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_SEARCHSCOPE,false,&mii);
+				//uniquewindow
+				mii.fState=(g_bEnterUniqueWindow?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_UNIQUE_WINDOW,false,&mii);
+
+				int iIndex=ListView_GetSelectedItem(g_hListView);
+
+				if(iIndex<0)break;
+
+				WINDOWPLACEMENT wndpl={sizeof(WINDOWPLACEMENT)};
+
+				GetWindowPlacement(g_DisplayWindowInfo[iIndex]->hWnd,&wndpl);
+
+				//minimize
+				mii.fState=(wndpl.showCmd==SW_SHOWMINIMIZED?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_MINIMIZE,false,&mii);
+
+				//maximize
+				mii.fState=(wndpl.showCmd==SW_SHOWMAXIMIZED?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_MAXIMIZE,false,&mii);
+
+				//topmost
+				mii.fState=(IsWindowTopMost(g_DisplayWindowInfo[iIndex]->hWnd)?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_TOPMOST,false,&mii);
+
+
+				//親プロセスの優先度
+
+				if(!ulSelectedProcessId){
+					break;
+				}
+
+				DWORD dwProcessId=0;
+
+				GetWindowThreadProcessId(g_DisplayWindowInfo[iIndex]->hWnd,&dwProcessId);
+
+				DWORD dwPriority=GetPriorityClass(dwProcessId);
+
+				//idlepriority
+				mii.fState=(dwPriority==IDLE_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_IDLE_PRIORITY,false,&mii);
+				//belownormalpriority
+				mii.fState=(dwPriority==BELOW_NORMAL_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_BELOW_NORMAL_PRIORITY,false,&mii);
+				//normalpriority
+				mii.fState=(dwPriority==NORMAL_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_NORMAL_PRIORITY,false,&mii);
+				//abovenormalpriority
+				mii.fState=(dwPriority==ABOVE_NORMAL_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_ABOVE_NORMAL_PRIORITY,false,&mii);
+				//highpriority
+				mii.fState=(dwPriority==HIGH_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_HIGH_PRIORITY,false,&mii);
+				//realtimepriority
+				mii.fState=(dwPriority==REALTIME_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo((HMENU)wParam,IDM_KEY_REALTIME_PRIORITY,false,&mii);
 			}
 			break;
 		}
@@ -2898,7 +3082,37 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 				if(mii.dwItemData!=0){
 					//プロセスIDを保存
 					ulSelectedProcessId=mii.dwItemData;
+
 				}
+
+				if(!ulSelectedProcessId){
+					break;
+				}
+
+				//子プロセスの優先度
+
+				mii.fMask=MIIM_STATE;
+
+				DWORD dwPriority=GetPriorityClass((DWORD)ulSelectedProcessId);
+
+				//idlepriority
+				mii.fState=(dwPriority==IDLE_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo(hMenu,IDM_KEY_IDLE_PRIORITY,false,&mii);
+				//belownormalpriority
+				mii.fState=(dwPriority==BELOW_NORMAL_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo(hMenu,IDM_KEY_BELOW_NORMAL_PRIORITY,false,&mii);
+				//normalpriority
+				mii.fState=(dwPriority==NORMAL_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo(hMenu,IDM_KEY_NORMAL_PRIORITY,false,&mii);
+				//abovenormalpriority
+				mii.fState=(dwPriority==ABOVE_NORMAL_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo(hMenu,IDM_KEY_ABOVE_NORMAL_PRIORITY,false,&mii);
+				//highpriority
+				mii.fState=(dwPriority==HIGH_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo(hMenu,IDM_KEY_HIGH_PRIORITY,false,&mii);
+				//realtimepriority
+				mii.fState=(dwPriority==REALTIME_PRIORITY_CLASS?MFS_CHECKED:MFS_UNCHECKED);
+				SetMenuItemInfo(hMenu,IDM_KEY_REALTIME_PRIORITY,false,&mii);
 			}
 			return 0;
 		}
@@ -2907,8 +3121,9 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 			if(wParam){
 				//表示するならマウスの移動を有効に。
 				g_eWindowListStatus=WLS_DISPLAYED;
+
 				if(g_Config.ListView.iTimeOut>0||
-				   GetAsyncKeyState(VK_LBUTTON)&0x8000){
+				   g_Config.ListView.bDragTimeOut&&GetAsyncKeyState(VK_LBUTTON)&0x8000){
 					//タイムアウトで確定するためタイマーを設定
 					SetTimer(g_hListView,
 							 MAKEWPARAM(IDM_KEY_SWITCH,ListView_GetSelectedItem(g_hListView)),
@@ -2993,7 +3208,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 						ShowToolTip(g_hListView,ID_TOOLTIP_INFO);
 						ListView_RedrawItems(lpNMHdr->hwndFrom,((LPNMLISTVIEW)lParam)->iItem,((LPNMLISTVIEW)lParam)->iItem);
 						if(g_Config.ListView.iTimeOut>0||
-						   GetAsyncKeyState(VK_LBUTTON)&0x8000){
+						   g_Config.ListView.bDragTimeOut&&GetAsyncKeyState(VK_LBUTTON)&0x8000){
 							//タイムアウトで確定するためタイマーを設定
 							SetTimer(g_hListView,
 									 MAKEWPARAM(IDM_KEY_SWITCH,ListView_GetSelectedItem(g_hListView)),
@@ -3017,7 +3232,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 					IncrementalSearch(g_szSearchString,g_iMatchMode,g_bFirstColumnOnly);
 					return DefWindowProc(hWnd,uMsg,wParam,lParam);
 				case MAKEWPARAM(IDM_KEY_BS_STRING,1):
-					//インクリメンタルサーチの文字列を一つ削る
+					//インクリメンタルサーチの文字列を1つ削る
 					KillTimer(hWnd,wParam);
 					//表示を元に戻す
 					for(int i=0;i<g_iWindowCount;++i){
@@ -3426,9 +3641,9 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 					break;
 
 				case IDM_KEY_BS_STRING:{
-					//インクリメンタルサーチの文字列を一つ削る
+					//インクリメンタルサーチの文字列を1つ削る
 					if(g_Config.ListView.iTimeOut>0||
-					   GetAsyncKeyState(VK_LBUTTON)&0x8000){
+					   g_Config.ListView.bDragTimeOut&&GetAsyncKeyState(VK_LBUTTON)&0x8000){
 						//タイムアウトで確定するためタイマーを設定
 						SetTimer(g_hListView,
 								 MAKEWPARAM(IDM_KEY_SWITCH,ListView_GetSelectedItem(g_hListView)),
@@ -3645,8 +3860,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 										}
 									}while((hWnd=GetNextWindow(hWnd,GW_HWNDNEXT))!=NULL);
 									if(hWnd!=NULL){
-										//300msで支度しな!
-										SendMessageTimeout(hWnd,WM_GETTEXT,MAX_PATH,(LPARAM)szWindowTitle,SMTO_ABORTIFHUNG,300,NULL);
+										InternalGetWindowText(hWnd,szWindowTitle,MAX_PATH);
 									}else{
 										lstrcpy(szWindowTitle, _T(""));
 									}
@@ -3659,7 +3873,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 									GetWindowPlacement(hWnd,&wndpl);
 
 									//最前面表示か否か
-									if(GetWindowLongPtr(hWnd,GWL_EXSTYLE)&WS_EX_TOPMOST){
+									if(IsWindowTopMost(hWnd)){
 										lstrcpy(szTopMost,_T("WS_EX_TOPMOST\n"));
 									}else{
 										lstrcpy(szTopMost,_T(""));
@@ -3836,7 +4050,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 						}
 
 						//最前面表示か否か
-						if(GetWindowLongPtr(g_DisplayWindowInfo[iIndex]->hWnd,GWL_EXSTYLE)&WS_EX_TOPMOST){
+						if(IsWindowTopMost(g_DisplayWindowInfo[iIndex]->hWnd)){
 							lstrcpy(szTopMost,_T("WS_EX_TOPMOST\n"));
 						}else{
 							lstrcpy(szTopMost,_T(""));
@@ -4106,7 +4320,12 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 						UpdateAcceleratorTable();
 
 						//不透明度を設定
-						SetLayeredWindowAttributes(hWnd,0,g_Config.ListView.byAlpha,LWA_ALPHA);
+						if(g_Config.ListView.byAlpha!=255){
+							SetWindowLongPtr(hWnd,GWL_EXSTYLE,GetWindowLongPtr(hWnd,GWL_EXSTYLE)|WS_EX_LAYERED);
+							SetLayeredWindowAttributes(hWnd,0,g_Config.ListView.byAlpha,LWA_ALPHA);
+						}else{
+							SetWindowLongPtr(hWnd,GWL_EXSTYLE,GetWindowLongPtr(hWnd,GWL_EXSTYLE)&~WS_EX_LAYERED);
+						}
 
 						//カラムの情報を適用
 						LisView_InitColumn(g_ListViewColumn_Table,&g_Config,g_hListView);
@@ -4156,11 +4375,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 			break;
 
 		case WM_CLOSE:{
-			//最前面表示解除
-			SetWindowPos(g_hMainWnd,
-						 HWND_NOTOPMOST,
-						 0,0,0,0,SWP_NOMOVE|SWP_NOSIZE);
-
 			//タスクトレイアイコン削除
 			TaskTray(hWnd,NIM_DELETE,false);
 			//ホットキーを解除する
@@ -4186,6 +4400,12 @@ LRESULT CALLBACK WindowProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
 			FreeBitmap(g_pBitmapBack);
 			FreeBitmap(g_pBitmapOriginal);
 #endif
+
+			//アイコン解放
+			for(int i=0;i<g_iWindowCount;++i){
+				DestroyIcon(g_DisplayWindowInfo[i]->hIcon);
+				g_DisplayWindowInfo[i]->hIcon=NULL;
+			}
 
 			//メニュー解放
 			DestroyMenu(mTray.hMenu);
@@ -4311,10 +4531,10 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInst,LPSTR lpszCmdLine,int
 	//ウインドウクラスを登録
 	if(InitApplication(g_hInstance,szClassName)==0)ExitProcess(0);
 
-	hWnd=CreateWindowEx(WS_EX_TOOLWINDOW|WS_EX_TOPMOST|WS_EX_ACCEPTFILES|WS_EX_LAYERED,
+	hWnd=CreateWindowEx(WS_EX_TOOLWINDOW|WS_EX_TOPMOST|WS_EX_ACCEPTFILES|WS_EX_WINDOWEDGE,
 						szClassName,
 						szAppName,
-						WS_POPUP|WS_CLIPCHILDREN,
+						WS_POPUP|WS_CLIPCHILDREN|WS_THICKFRAME,
 						CW_USEDEFAULT,CW_USEDEFAULT,
 						CW_USEDEFAULT,CW_USEDEFAULT,
 						NULL,
@@ -4327,7 +4547,13 @@ int WINAPI WinMain(HINSTANCE hInstance,HINSTANCE hPrevInst,LPSTR lpszCmdLine,int
 	g_hMainWnd=hWnd;
 
 	//不透明度を設定
-	SetLayeredWindowAttributes(hWnd,0,g_Config.ListView.byAlpha,LWA_ALPHA);
+	if(g_Config.ListView.byAlpha!=255){
+		SetWindowLongPtr(hWnd,GWL_EXSTYLE,GetWindowLongPtr(hWnd,GWL_EXSTYLE)|WS_EX_LAYERED);
+		SetLayeredWindowAttributes(hWnd,0,g_Config.ListView.byAlpha,LWA_ALPHA);
+	}else{
+		SetWindowLongPtr(hWnd,GWL_EXSTYLE,GetWindowLongPtr(hWnd,GWL_EXSTYLE)&~WS_EX_LAYERED);
+	}
+
 
 	//メッセージ受け取り許可
 	bool(WINAPI*p_changeWindowMessageFilter)(UINT,DWORD)=(bool(WINAPI*)(UINT,DWORD))::GetProcAddress(::GetModuleHandle(_T("user32.dll")),"ChangeWindowMessageFilter");

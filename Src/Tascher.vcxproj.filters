@@ -78,5 +78,11 @@
     <ResourceCompile Include="resources\Tascher.rc">
       <Filter>リソース ファイル</Filter>
     </ResourceCompile>
+    <ResourceCompile Include="resources\Version64.rc">
+      <Filter>リソース ファイル</Filter>
+    </ResourceCompile>
+    <ResourceCompile Include="resources\Version.rc">
+      <Filter>リソース ファイル</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

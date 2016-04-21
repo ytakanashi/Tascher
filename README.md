@@ -6,7 +6,7 @@ Alt+Tabの連打や、タスクバーのクリックよりも、素早く、簡�
 マウス派の方、キーボード派の方、どちらにもおすすめです。
       
 ## Screenshot
-![Tascherメイン](https://github.com/ytakanashi/Tascher/wiki/Images/Tascher_ss.gif)  
+![Tascherメイン](/wiki/Images/Tascher_ss.gif)  
       
 ## Download
 **[Download Binary Package / Installer](http://www16.atpages.jp/rayna/Tascher/)**
@@ -45,13 +45,13 @@ zip書庫ファイルの場合、「**Tascher\*.zip**」を適当なフォルダ
 
 右クリックや「`_`」キーを入力すると、コマンドメニューが表示されます。  
 ウインドウの最大化/最小化や、  
-![ウインドウ操作メニュー](https://github.com/ytakanashi/Tascher/wiki/Images/Tascher_ss_Menu.png)  
+![ウインドウ操作メニュー](/wiki/Images/Tascher_ss_Menu.png)  
   
 プロセス(子も含む)の優先度変更/強制終了等々を行うことができます。  
-![子プロセス操作メニュー](https://github.com/ytakanashi/Tascher/wiki/Images/Tascher_ss_ChildProcessMenu.png)  
+![子プロセス操作メニュー](/wiki/Images/Tascher_ss_ChildProcessMenu.png)  
   
 \* 上記ショートカットキーや機能は設定で変更することができます。  
-\* その他情報は「**[Readme.txt](https://github.com/ytakanashi/Tascher/blob/master/Readme.txt)**」をご覧ください。  
+\* その他情報は「**[Readme.txt](/Readme.txt)**」をご覧ください。  
       
 ### デフォルトのショートカットキー割り当て
 |コマンド|文字列|ショートカットキー|
@@ -91,7 +91,7 @@ zip書庫ファイルの場合、「**Tascher\*.zip**」を適当なフォルダ
         
 ## License
 NYSL Version 0.9982に準拠して配布されています。  
-ライセンスの条文については同梱の「NYSL_withfaq.TXT」をご覧下さい。
+ライセンスの条文については同梱の「**[NYSL_withfaq.TXT](/NYSL_withfaq.TXT)**」をご覧下さい。
       
 ## Support
 サポート(ご意見、ご感想、不具合のご報告、ご要望等)は  

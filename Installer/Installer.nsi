@@ -3,11 +3,11 @@
 !include LogicLib.nsh
 
 !define PRODUCT_NAME "Tascher -Task Switcher-"
-!define PRODUCT_VERSION "1.6.1.0"
+!define PRODUCT_VERSION "1.6.2.0"
 !define PRODUCT_PUBLISHER "Frost Moon Project"
 !define PRODUCT_WEB_SITE "http://www16.atpages.jp/rayna/index.html"
 
-!define APPNAME "Tascher161"
+!define APPNAME "Tascher162"
 !define APPDIR "files"
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"

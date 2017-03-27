@@ -15,6 +15,7 @@
  ・見れたものではありません。
  ・時代遅れのWin32API直打ちに加え、CRT非依存にするため、難儀な処理が数多あります。
  ・その上、古いバージョンのコードそのままで整理していません。
+ ・あえてハンガリアン記法で書いています。
  ・参考になるような情報もありません。
  ...残念!
  ライセンスの条文については同梱の「NYSL_withfaq.TXT」をご覧下さいませ。
@@ -28,6 +29,42 @@
 
 
 ・Note
+ [Ver.1.62]
+     ・migemo_setproc_int2char()で'[',']','~'でもマッチできるようになりました。
+       migemo_setproc_int2char()でプロシージャを登録すると、0を返してmigemo側のデフォルトプロシージャに丸投げしようとしても、
+       内部で文字コード自動判別が行われないので、Tascher側のint2char()内でUTF-8向け処理を行う必要がありました。
+       <UWPアプリ対応メモいろいろ>
+       ・中断かつタスクバーに表示されていないUWPアプリ(「設定」、「ストア」、「フォト」等々)を弾くため、
+         1.WS_EX_NOREDIRECTIONBITMAPの有無でUWPアプリか確認。
+         2.DwmGetWindowAttribute(DWMWA_CLOAKED)でFALSEを返すウインドウのみを列挙。
+       ・↑で列挙されるウインドウはクラス名「ApplicationFrameWindow」、プロセス名は「ApplicationFrameHost.exe」とUWPアプリ共通なので、
+         FindWindowEx(hWnd,NULL,"Windows.UI.Core.CoreWindow",NULL)
+         で取得したウインドウハンドルを利用し個別のプロセスを操作。
+       ・UWPアプリが最小化されている場合、「Windows.UI.Core.CoreWindow」は「ApplicationFrameWindow」以下ではなくトップレベルに存在するため、
+           1.トップレベルの「Windows.UI.Core.CoreWindow」を列挙。
+           2.↑のウインドウタイトルを含む「ApplicationFrameWindow」を親とする。
+         という処理に。
+         ただ、これだと一部UWPアプリに対応出来ないと思われます。
+       ・UWPアプリのアイコンはSendMessage(WM_GETICON)やGetClassLongPtr(GCLP_HICON)で取得することができません。
+         アイコン(HICON)取得方法は以下の通り。
+           1.↑で取得した「Windows.UI.Core.CoreWindow」のウインドウハンドルからGetWindowThreadProcessId()でプロセスIDを取得。
+           2.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION)で開く。
+           3.GetPackageFullName()でパッケージ名取得。
+           4.GetPackagePathByFullName()でUWPアプリのディレクトリを取得。
+           5.PackageIdFromFullName()でパッケージIDを取得。
+           6.UWPアプリのディレクトリにある「AppxManifest.xml」をMSXMLで開く。
+           7.Square44x44Logoからロゴのパスを取得。(Windows 8.1ならSquare30x30Logo、Windows 8ならSmallLogoらしい。未確認。)
+             (Microsoft Edgeなら"Assets\MicrosoftEdgeSquare44x44.png"が取得出来ました。)
+           8.BackgroundColorから背景色を取得。
+           9."@{パッケージ名?ms-resource://パッケージID/Files/ロゴのパス}"をSHLoadIndirectString()に投げ、ロゴ用PNGファイルをパスを取得。
+           10.Gdiplus::Bitmap()でロゴを開く。
+           11.表示用アイコンのサイズでGdiplus::Bitmapを作成し、Gdiplus::Graphics()で開き、FillRectangle(BackgroundColor)で塗りつぶす。
+           12.読み込んだロゴをDrawImage()で描画し、GetHICON()でHICONを取得。
+       ・上記は全てWindows 10で確認しました。Windows 8/8.1で動作するかは不明です。
+     ・サムネイル表示機能を実装しました。サムネイルを表示するウインドウはトップレベルのウインドウである必要があります。
+       (Tascherメインウインドウの子だとだめ。)
+     ・切り替えなしで非表示にする際、ShowWindow(SW_HIDE)でZオーダー順ではないウインドウに切り替わってしまう不具合について、
+       ShowListView()で自前のSetForegroundWindowEx()ではなくSetForegroundWindow()を呼び出すことで解決。
  [Ver.1.61]
      ・ウインドウリスト表示時に取得したアイコンを使い回す設定を追加。
        インクリメンタルサーチがスムーズに行えるように?

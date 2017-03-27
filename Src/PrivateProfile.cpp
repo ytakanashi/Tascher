@@ -2,7 +2,7 @@
 //cfgファイル操作
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.61
+	Tascher Ver.1.62
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -21,11 +21,6 @@
 
 TCHAR g_szPrivateProfile[MAX_PATH]={};
 
-//PrivateProfile.hで宣言された以外の関数
-//cfgファイルパスを取得
-void GetPrivateProfilePath();
-//整数を文字列に変換してPrivateProfileファイルに書き込む
-bool WINAPI WritePrivateProfileInt(LPCTSTR lpAppName,LPCTSTR lpKeyName,LONG_PTR lData,LPCTSTR lpFileName);
 
 
 //cfgファイルパスを取得
@@ -69,6 +64,12 @@ void WritePrivateProfile(HWND hWnd){
 	WritePrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),g_Config.ListView.bTaskBarEquivalent,g_szPrivateProfile);
 	//2番目にアクティブなウインドウを選択[動作]
 	WritePrivateProfileInt(_T("ListView"),_T("SelectSecondWindow"),g_Config.ListView.bSelectSecondWindow,g_szPrivateProfile);
+	//サムネイルを表示[動作]
+	WritePrivateProfileInt(_T("ListView"),_T("Thumbnail"),g_Config.ListView.bThumbnail,g_szPrivateProfile);
+	//サムネイルの大きさ
+	WritePrivateProfileInt(_T("ListView"),_T("ThumbnailSize"),g_Config.ListView.iThumbnailSize,g_szPrivateProfile);
+	//サムネイルを表示するまでの時間
+	WritePrivateProfileInt(_T("ListView"),_T("ThumbnailDelay"),g_Config.ListView.iThumbnailDelay,g_szPrivateProfile);
 	//[不透明度]
 	WritePrivateProfileInt(_T("ListView"),_T("Alpha"),g_Config.ListView.byAlpha,g_szPrivateProfile);
 	//アイコンなし(大)、アイコンなし(小)、小さなアイコン、大きなアイコン[表示項目]
@@ -136,9 +137,14 @@ void WritePrivateProfile(HWND hWnd){
 
 	//表示操作
 	WritePrivateProfileInt(_T("ShowWindow"),_T("LeftTop"),g_Config.ShowWindow.bLeftTop,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("Top"),g_Config.ShowWindow.bTop,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ShowWindow"),_T("RightTop"),g_Config.ShowWindow.bRightTop,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("Left"),g_Config.ShowWindow.bLeft,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("Right"),g_Config.ShowWindow.bRight,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ShowWindow"),_T("LeftBottom"),g_Config.ShowWindow.bLeftBottom,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("Bottom"),g_Config.ShowWindow.bBottom,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ShowWindow"),_T("RightBottom"),g_Config.ShowWindow.bRightBottom,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseWheel"),g_Config.ShowWindow.bMouseWheel,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKey"),g_Config.ShowWindow.wHotKey,g_szPrivateProfile);
 
 
@@ -227,6 +233,12 @@ void ReadPrivateProfile(){
 	g_Config.ListView.bTaskBarEquivalent=GetPrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),1,g_szPrivateProfile)!=0;
 	//2番目にアクティブなウインドウを選択[動作]
 	g_Config.ListView.bSelectSecondWindow=GetPrivateProfileInt(_T("ListView"),_T("SelectSecondWindow"),1,g_szPrivateProfile)!=0;
+	//サムネイルを表示[動作]
+	g_Config.ListView.bThumbnail=GetPrivateProfileInt(_T("ListView"),_T("Thumbnail"),1,g_szPrivateProfile)!=0;
+	//サムネイルの大きさ
+	g_Config.ListView.iThumbnailSize=GetPrivateProfileInt(_T("ListView"),_T("ThumbnailSize"),300,g_szPrivateProfile);
+	//サムネイルを表示するまでの時間
+	g_Config.ListView.iThumbnailDelay=GetPrivateProfileInt(_T("ListView"),_T("ThumbnailDelay"),1000,g_szPrivateProfile);
 
 	//[不透明度]
 	g_Config.ListView.byAlpha=GetPrivateProfileInt(_T("ListView"),_T("Alpha"),255,g_szPrivateProfile);
@@ -234,7 +246,7 @@ void ReadPrivateProfile(){
 	//アイコンなし(大)、アイコンなし(小)、小さなアイコン、大きなアイコン[表示項目]
 	g_Config.ListView.iIcon=GetPrivateProfileInt(_T("ListView"),_T("Icon"),LISTICON_BIG,g_szPrivateProfile);
 	//リスト作成時のアイコンを使用する
-	g_Config.ListView.bCacheIcon=GetPrivateProfileInt(_T("ListView"),_T("CacheIcon"),0,g_szPrivateProfile)!=0;
+	g_Config.ListView.bCacheIcon=GetPrivateProfileInt(_T("ListView"),_T("CacheIcon"),1,g_szPrivateProfile)!=0;
 	//デスクトップ[表示項目]
 	g_Config.ListView.bDesktopItem=GetPrivateProfileInt(_T("ListView"),_T("DesktopItem"),0,g_szPrivateProfile)!=0;
 	//キャンセル[表示項目]
@@ -341,9 +353,14 @@ void ReadPrivateProfile(){
 
 	//表示操作
 	g_Config.ShowWindow.bLeftTop=GetPrivateProfileInt(_T("ShowWindow"),_T("LeftTop"),0,g_szPrivateProfile)!=0;
+	g_Config.ShowWindow.bTop=GetPrivateProfileInt(_T("ShowWindow"),_T("Top"),0,g_szPrivateProfile)!=0;
 	g_Config.ShowWindow.bRightTop=GetPrivateProfileInt(_T("ShowWindow"),_T("RightTop"),0,g_szPrivateProfile)!=0;
+	g_Config.ShowWindow.bLeft=GetPrivateProfileInt(_T("ShowWindow"),_T("Left"),0,g_szPrivateProfile)!=0;
+	g_Config.ShowWindow.bRight=GetPrivateProfileInt(_T("ShowWindow"),_T("Right"),0,g_szPrivateProfile)!=0;
 	g_Config.ShowWindow.bLeftBottom=GetPrivateProfileInt(_T("ShowWindow"),_T("LeftBottom"),0,g_szPrivateProfile)!=0;
+	g_Config.ShowWindow.bBottom=GetPrivateProfileInt(_T("ShowWindow"),_T("Bottom"),0,g_szPrivateProfile)!=0;
 	g_Config.ShowWindow.bRightBottom=GetPrivateProfileInt(_T("ShowWindow"),_T("RightBottom"),1,g_szPrivateProfile)!=0;
+	g_Config.ShowWindow.bMouseWheel=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseWheel"),0,g_szPrivateProfile)!=0;
 	g_Config.ShowWindow.wHotKey=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKey"),858,g_szPrivateProfile);
 
 

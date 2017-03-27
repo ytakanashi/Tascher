@@ -2,7 +2,7 @@
 //共通ヘッダファイル
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.61
+	Tascher Ver.1.62
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -35,7 +35,7 @@
 #endif
 
 #ifndef _WIN32_IE
-	#define _WIN32_IE 0x501
+	#define _WIN32_IE _WIN32_IE_IE55
 #endif
 
 #include<windows.h>
@@ -47,15 +47,15 @@
 
 #ifdef _DEBUG
 	#ifndef _WIN64
-		#define TASCHER_VERSION _T("Tascher Ver.1.61 <Debug>")
+		#define TASCHER_VERSION _T("Tascher Ver.1.62 <Debug>")
 	#else
-		#define TASCHER_VERSION _T("Tascher Ver.1.61 x64 <Debug>")
+		#define TASCHER_VERSION _T("Tascher Ver.1.62 x64 <Debug>")
 	#endif
 #else
 	#ifndef _WIN64
-		#define TASCHER_VERSION _T("Tascher Ver.1.61")
+		#define TASCHER_VERSION _T("Tascher Ver.1.62")
 	#else
-		#define TASCHER_VERSION _T("Tascher Ver.1.61 x64")
+		#define TASCHER_VERSION _T("Tascher Ver.1.62 x64")
 	#endif
 #endif
 

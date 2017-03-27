@@ -2,7 +2,7 @@
 //様々な便利関数
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.61
+	Tascher Ver.1.62
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -16,6 +16,8 @@
 #ifndef FUNCTION_H
 #define FUNCTION_H
 
+#include"CommonSettings.h"
+#include<tlhelp32.h>
 #include<gdiplus.h>
 
 
@@ -36,8 +38,12 @@ struct SPINEDIT_TABLE{
 enum SCC_CORNERS{
 	SCC_NONE=0,
 	SCC_LEFTTOP=1,//左上
+	SCC_TOP,//上
 	SCC_RIGHTTOP,//右上
+	SCC_LEFT,//左
+	SCC_RIGHT,//右
 	SCC_LEFTBOTTOM,//左下
+	SCC_BOTTOM,//下
 	SCC_RIGHTBOTTOM,//右下
 	SCC_CENTER,//中央
 };
@@ -57,7 +63,7 @@ bool OpenSingleFileDialog(HWND hWnd,TCHAR* pszResult,int iLength,const TCHAR* ps
 bool SetCenterWindow(HWND hWnd);
 
 //カーソルを四隅に移動
-bool SetCornerCursor(HWND hWnd,SCC_CORNERS scwCorner);
+bool SetCornerCursor(HWND hWnd,SCC_CORNERS scwCorner,int iMargin=20);
 
 //カーソルをウインドウの中心に移動
 bool SetCenterCursor(HWND hWnd=NULL);
@@ -107,11 +113,6 @@ bool RegistHotKey(HWND hWnd,int iItemId,WORD& pwHotkey);
 //ホットキー登録解除
 bool UnregistHotKey(HWND hWnd,int iItemId,WORD& pwHotkey);
 
-#if 0
-//ウインドウは応答なしである
-bool IsWindowHung(HWND hWnd);
-#endif
-
 //ウインドウをフォアグラウンドに持ってくる
 bool SetForegroundWindowEx(HWND hWnd);
 
@@ -137,5 +138,57 @@ void ToggleDesktop();
 
 //文字列をクリップボードにコピー
 bool SetClipboardText(HWND hWnd,const TCHAR* pszText,int iLength);
+
+//アクセラレータテーブルを更新
+HACCEL UpdateAcceleratorTable(HACCEL hAccel,SKEY sKeyTable[]);
+
+//プロセスのファイル名を取得
+bool GetProcessFileName(DWORD dwProcessId,LPTSTR pszFileName,DWORD dwFileNameLength);
+
+//プロセスを強制終了
+bool TerminateProcess(DWORD dwProcessId);
+
+//プロセスの優先度を取得
+DWORD GetPriorityClass(DWORD dwProcessId);
+
+//プロセスの優先度を設定
+bool SetPriorityClass(DWORD dwProcessId,DWORD dwPriorityClass);
+
+//プロセスツリーを強制終了
+void TerminateProcessTree(PROCESSENTRY32* pProcessEntry32,DWORD dwParentProcessId);
+
+//プロセスリストを作成
+PROCESSENTRY32* AllocProcessList();
+
+//プロセスリストを解放
+void FreeProcessList(PROCESSENTRY32* pProcessEntry32);
+
+//特定のプロセスのコマンドラインを取得
+LPTSTR AllocProcessCommandLine(DWORD dwProcessId);
+
+//AllocProcessCommandLine()で取得したコマンドラインを解放
+void FreeProcessCommandLine(TCHAR* pszCommandLine);
+
+//キー入力を登録する
+void SetKeybrd(LPINPUT lpKey,WORD wVKey,bool KeyDown);
+
+//キー入力を行う
+void ExecKey(WORD wKey,WORD wVKey);
+
+//マウスアウトを検出する
+void MouseLeaveEvent(HWND hWnd);
+
+//デスクトップアイコンを取得する
+HICON GetDesktopIcon(bool bSmall);
+
+//あの手この手でアイコンを取得[小さい]
+HICON GetSmallIcon(HWND hWnd,bool bUWPApp=false);
+
+//あの手この手でアイコンを取得[大きい]
+HICON GetLargeIcon(HWND hWnd,bool bUWPApp=false);
+
+//ウインドウハンドルからファイル名を取得する
+bool GetFileNameFromWindowHandle(HWND hWnd,LPTSTR lpFileName,DWORD dwFileNameLength);
+
 
 #endif //FUNCTION_H

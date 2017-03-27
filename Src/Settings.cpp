@@ -2,7 +2,7 @@
 //設定ダイアログ
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.61
+	Tascher Ver.1.62
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -38,40 +38,6 @@ struct CONFIG g_ConfigTmp;
 //設定項目デフォルト文字列
 static TCHAR g_szDefaultString[]=_T(" デフォルト");
 
-//チェックボックスのチェックをつける/外す
-LRESULT setCheck(HWND hDlg,UINT uId,int iCheck);
-//チェックボックスがチェックされているか取得
-bool getCheck(HWND hDlg,UINT uId);
-//フォントを列挙する
-int CALLBACK EnumFontsProc(ENUMLOGFONTEX *lplf,NEWTEXTMETRICEX *lptm,DWORD dwType,LPARAM lpData);
-//低レベルキーボードフックのプロシージャ
-LRESULT CALLBACK LowLevelKeyboardHookProc(int nCode,WPARAM wParam,LPARAM lParam);
-//現在の設定をコントロールに適用
-void SetCurrentSettings(HWND hDlg,struct CONFIG* pConfig,TAB iTab);
-//設定ダイアログのプロシージャ
-BOOL CALLBACK SettingsDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//「全般」タブのプロシージャ
-BOOL CALLBACK GeneralTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//「表示方法」タブのプロシージャ
-BOOL CALLBACK ShowWindowTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//「ショートカットキー」タブのプロシージャ
-BOOL CALLBACK ShortcutKeyTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//「マウス」タブのプロシージャ
-BOOL CALLBACK MouseTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//「デザイン」タブのプロシージャ
-BOOL CALLBACK DesignTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//「バージョン情報」タブのプロシージャ
-BOOL CALLBACK VersionTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//ショートカットキーリストのプロシージャ
-LRESULT CALLBACK ShortcutKeyListProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//ショートカットキーリストのヘッダーのプロシージャ
-LRESULT CALLBACK ShortcutKeyListHeaderProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//ホットキーコントロールのプロシージャ
-LRESULT CALLBACK HotKeyProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//プレビューリストのプロシージャ
-LRESULT CALLBACK PreviewListViewProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam);
-//ハイパーリンクのプロシージャ
-LRESULT CALLBACK HyperLinkProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam);
 
 
 //チェックボックスのチェックをつける/外す
@@ -104,6 +70,40 @@ int CALLBACK EnumFontsProc(ENUMLOGFONTEX *lplf,NEWTEXTMETRICEX *lptm,DWORD dwTyp
 	return true;
 }
 
+//ホットキーコントロールのプロシージャ
+LRESULT CALLBACK HotKeyProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
+	switch(uMsg){
+		case WM_KEYDOWN:
+			switch(wParam){
+				case VK_RETURN:
+				case VK_TAB:
+				case VK_SPACE:
+				case VK_DELETE:
+				case VK_ESCAPE:
+				case VK_BACK:{
+					//エンターキーやスペースキーを入力可能に
+					BYTE byKey=0;
+
+					if(GetKeyState(VK_SHIFT)&0x8000)byKey|=HOTKEYF_SHIFT;
+					if(GetKeyState(VK_CONTROL)&0x8000)byKey|=HOTKEYF_CONTROL;
+					if(GetKeyState(VK_MENU)&0x8000)byKey|=HOTKEYF_ALT;
+					if(lParam&0x24)byKey|=HOTKEYF_EXT;
+
+					SendMessage(hWnd,HKM_SETHOTKEY,MAKEWORD(wParam,byKey),0);
+					return TRUE;
+				}
+
+			default:
+				break;
+		}
+		break;
+
+		default:
+			break;
+	}
+	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
+}
+
 //低レベルキーボードフックのプロシージャ
 LRESULT CALLBACK LowLevelKeyboardHookProc(int nCode,WPARAM wParam,LPARAM lParam){
 	if(nCode!=HC_ACTION)return CallNextHookEx(NULL/*This parameter is ignored.(by MSDN)*/,nCode,wParam,lParam);
@@ -119,18 +119,6 @@ LRESULT CALLBACK LowLevelKeyboardHookProc(int nCode,WPARAM wParam,LPARAM lParam)
 		}
 	}
 	return CallNextHookEx(NULL/*This parameter is ignored.(by MSDN)*/,nCode,wParam,lParam);
-}
-
-//設定ウインドウを表示する
-INT_PTR ShowSettingsDialog(HWND hWnd,int iStartTab){
-	INT_PTR iResult=IDCANCEL;
-	HWND hForeground=GetForegroundWindow();
-	g_bSettingsDialog=true;
-	g_iStartTab=iStartTab;
-	iResult=DialogBox(g_hInstance,MAKEINTRESOURCE(IDD_SETTINGSDIALOG),hWnd,(DLGPROC)SettingsDialogProc);
-	g_bSettingsDialog=false;
-	if(hForeground!=hWnd)SetForegroundWindowEx(hForeground);
-	return iResult;
 }
 
 //現在の設定をコントロールに適用
@@ -180,6 +168,12 @@ void SetCurrentSettings(HWND hDlg,struct CONFIG* pConfig,TAB iTab){
 			setCheck(hDlg,
 					 IDC_CHECKBOX_SELECTSECONDWINDOW,
 					 pConfig->ListView.bSelectSecondWindow
+					 );
+
+			//サムネイルを表示[動作]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_THUMBNAIL,
+					 pConfig->ListView.bThumbnail
 					 );
 
 
@@ -247,7 +241,7 @@ void SetCurrentSettings(HWND hDlg,struct CONFIG* pConfig,TAB iTab){
 					 );
 
 			//インクリメンタルサーチ
-			//検索方法
+			//検索方法[インクリメンタルサーチ]
 			SendDlgItemMessage(hDlg,
 							   IDC_COMBO_SEARCH,
 							   CB_SETCURSEL,
@@ -255,7 +249,7 @@ void SetCurrentSettings(HWND hDlg,struct CONFIG* pConfig,TAB iTab){
 							   (LPARAM)0
 							   );
 
-			//Migemoモード
+			//Migemoモード[インクリメンタルサーチ]
 			SendDlgItemMessage(hDlg,
 							   IDC_COMBO_MIGEMO,
 							   CB_SETCURSEL,
@@ -263,19 +257,19 @@ void SetCurrentSettings(HWND hDlg,struct CONFIG* pConfig,TAB iTab){
 							   (LPARAM)0
 							   );
 
-			//左側の項目のみ検索
+			//左側の項目のみ検索[インクリメンタルサーチ]
 			setCheck(hDlg,
 					 IDC_CHECKBOX_FIRSTCOLUMNONLY,
 					 pConfig->IncrementalSearch.bFirstColumnOnly
 					 );
 
-			//候補のウインドウが1つなら確定
+			//候補のウインドウが1つなら確定[インクリメンタルサーチ]
 			setCheck(hDlg,
 					 IDC_CHECKBOX_ENTERUNIQUEWINDOW,
 					 pConfig->IncrementalSearch.bEnterUniqueWindow
 					 );
 
-			//連文節検索を行う
+			//連文節検索を行う[インクリメンタルサーチ]
 			setCheck(hDlg,
 					 IDC_CHECKBOX_MIGEMO_CASESENSITIVE,
 					 pConfig->IncrementalSearch.bMigemoCaseSensitive
@@ -293,10 +287,28 @@ void SetCurrentSettings(HWND hDlg,struct CONFIG* pConfig,TAB iTab){
 					 pConfig->ShowWindow.bLeftTop
 					 );
 
+			//上[マウスの移動]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_TOP,
+					 pConfig->ShowWindow.bTop
+					 );
+
 			//右上[マウスの移動]
 			setCheck(hDlg,
 					 IDC_CHECKBOX_RIGHTTOP,
 					 pConfig->ShowWindow.bRightTop
+					 );
+
+			//左[マウスの移動]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_LEFT,
+					 pConfig->ShowWindow.bLeft
+					 );
+
+			//右上[マウスの移動]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_RIGHT,
+					 pConfig->ShowWindow.bRight
 					 );
 
 			//左下[マウスの移動]
@@ -305,10 +317,22 @@ void SetCurrentSettings(HWND hDlg,struct CONFIG* pConfig,TAB iTab){
 					 pConfig->ShowWindow.bLeftBottom
 					 );
 
+			//下[マウスの移動]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_BOTTOM,
+					 pConfig->ShowWindow.bBottom
+					 );
+
 			//右下[マウスの移動]
 			setCheck(hDlg,
 					 IDC_CHECKBOX_RIGHTBOTTOM,
 					 pConfig->ShowWindow.bRightBottom
+					 );
+
+			//マウスホイール回転時のみ[マウスの移動]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_SHOW_MOUSEWHEEL,
+					 pConfig->ShowWindow.bMouseWheel
 					 );
 
 			//[ホットキー]
@@ -428,301 +452,57 @@ void SetCurrentSettings(HWND hDlg,struct CONFIG* pConfig,TAB iTab){
 
 			break;
 		}//TAB_DESIGN
+
+		case TAB_ADVANCED:{
+			//「高度な設定」タブ
+			//動作
+			//ドラッグ中はマウスホバーで選択[動作]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_DRAG_MOUSEHOVER,
+					 pConfig->ListView.bDragMouseHover
+					 );
+
+			//ドラッグ中はタイムアウトで確定[動作]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_DRAG_TIMEOUT,
+					 pConfig->ListView.bDragTimeOut
+					 );
+
+			//取得したアイコンをキャッシュ[動作]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_CACHE_ICON,
+					 pConfig->ListView.bCacheIcon
+					 );
+
+			//ウインドウにフレームを表示[動作]
+			setCheck(hDlg,
+					 IDC_CHECKBOX_FRAME,
+					 pConfig->ListView.bDialogFrame
+					 );
+
+			//タイムアウト[動作]
+			SetIntToEdit(GetDlgItem(hDlg,IDC_EDIT_TIMEOUT),pConfig->ListView.iTimeOut);
+
+			//サムネイル
+			//サムネイルの大きさ
+			SetIntToEdit(GetDlgItem(hDlg,IDC_EDIT_THUMBNAIL_SIZE),pConfig->ListView.iThumbnailSize);
+			//サムネイル表示までの時間
+			SetIntToEdit(GetDlgItem(hDlg,IDC_EDIT_THUMBNAIL_DELAY),pConfig->ListView.iThumbnailDelay);
+
+			//インクリメンタルサーチ
+			//「候補のウインドウが1つなら確定」遅延時間[インクリメンタルサーチ]
+			SetIntToEdit(GetDlgItem(hDlg,IDC_EDIT_UNIQUEWINDOW_DELAY),pConfig->IncrementalSearch.iUniqueWindowDelay);
+
+			//Migemo検索を開始するまでの遅延時間[インクリメンタルサーチ]
+			SetIntToEdit(GetDlgItem(hDlg,IDC_EDIT_MIGEMO_DELAY),pConfig->IncrementalSearch.iMigemoDelay);
+
+			//フィルタ
+			//除外するファイル名[フィルタ]
+			SetWindowText(GetDlgItem(hDlg,IDC_EDIT_EXCLUDE_FILENAME),pConfig->Exclude.szFileName);
+			break;
+		}//case TAB_ADVANCED
 	}
 	return;
-}
-
-//設定ダイアログのプロシージャ
-BOOL CALLBACK SettingsDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
-	static HWND hTab;
-	static HWND hTabGeneral;//「全般」タブ
-	static HWND hTabShowWindow;//「表示方法」タブ
-	static HWND hTabShortcutKey;//「ショートカットキー」タブ
-	static HWND hTabMouse;//「マウス」タブ
-	static HWND hTabDesign;//「デザイン」タブ
-	static HWND hTabVersion;//「バージョン情報」タブ
-
-	switch (uMsg){
-		case WM_INITDIALOG:{
-			//設定一時保存
-			g_ConfigTmp=g_Config;
-
-			//画面中央に表示
-			SetCenterWindow(hDlg);
-			hTab=GetDlgItem(hDlg,IDC_TAB1);
-
-			//タブ追加
-			TC_ITEM TabItem;
-
-			TabItem.mask=TCIF_TEXT;
-			TabItem.pszText=(LPTSTR)_T("全般");
-			TabCtrl_InsertItem(hTab,TAB_GENERAL,&TabItem);
-
-			TabItem.pszText=(LPTSTR)_T("表示方法");
-			TabCtrl_InsertItem(hTab,TAB_SHOWWINDOW,&TabItem);
-
-			TabItem.pszText=(LPTSTR)_T("ショートカットキー");
-			TabCtrl_InsertItem(hTab,TAB_SHORTCUTKEY,&TabItem);
-
-			TabItem.pszText=(LPTSTR)_T("マウス");
-			TabCtrl_InsertItem(hTab,TAB_MOUSE,&TabItem);
-
-			TabItem.pszText=(LPTSTR)_T("デザイン");
-			TabCtrl_InsertItem(hTab,TAB_DESIGN,&TabItem);
-
-			TabItem.pszText=(LPTSTR)_T("バージョン情報");
-			TabCtrl_InsertItem(hTab,TAB_VERSION,&TabItem);
-
-			//タブ(ダイアログ)作成
-			hTabGeneral=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_GENERALTAB),hDlg,(DLGPROC)GeneralTabProc);
-			hTabShowWindow=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_SHOWWINDOWTAB),hDlg,(DLGPROC)ShowWindowTabProc);
-			hTabShortcutKey=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_SHORTCUTKEYTAB),hDlg,(DLGPROC)ShortcutKeyTabProc);
-			hTabMouse=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_MOUSETAB),hDlg,(DLGPROC)MouseTabProc);
-			hTabDesign=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_DESIGNTAB),hDlg,(DLGPROC)DesignTabProc);
-			hTabVersion=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_VERSIONTAB),hDlg,(DLGPROC)VersionTabProc);
-
-			//タブの座標取得
-			RECT rc;
-			LPPOINT lpt=(LPPOINT)&rc;
-
-			GetClientRect(hTab,&rc);
-			TabCtrl_AdjustRect(hTab,false,&rc);
-			//座標変換
-			MapWindowPoints(hTab,hDlg,lpt,2);
-
-			//タブの位置とサイズの調整
-			HDWP hdwp=BeginDeferWindowPos(TAB_VERSION);
-			hdwp=DeferWindowPos(hdwp,
-								hTabGeneral,
-								NULL,
-								rc.left,
-								rc.top,
-								rc.right-rc.left,
-								rc.bottom-rc.top,
-								0);
-			hdwp=DeferWindowPos(hdwp,
-								hTabShowWindow,
-								NULL,
-								rc.left,
-								rc.top,
-								rc.right-rc.left,
-								rc.bottom-rc.top,
-								0);
-			hdwp=DeferWindowPos(hdwp,
-								hTabShortcutKey,
-								NULL,
-								rc.left,
-								rc.top,
-								rc.right-rc.left,
-								rc.bottom-rc.top,
-								0);
-			hdwp=DeferWindowPos(hdwp,
-								hTabMouse,
-								NULL,
-								rc.left,
-								rc.top,
-								rc.right-rc.left,
-								rc.bottom-rc.top,
-								0);
-			hdwp=DeferWindowPos(hdwp,
-								hTabDesign,
-								NULL,
-								rc.left,
-								rc.top,
-								rc.right-rc.left,
-								rc.bottom-rc.top,
-								0);
-			hdwp=DeferWindowPos(hdwp,
-								hTabVersion,
-								NULL,
-								rc.left,
-								rc.top,
-								rc.right-rc.left,
-								rc.bottom-rc.top,
-								0);
-			EndDeferWindowPos(hdwp);
-
-			//タブを表示
-			if(g_iStartTab==TAB_GENERAL){//全般
-				ShowWindow(hTabGeneral,SW_SHOW);
-				ShowWindow(hTabShowWindow,SW_HIDE);
-				ShowWindow(hTabShortcutKey,SW_HIDE);
-				ShowWindow(hTabMouse,SW_HIDE);
-				ShowWindow(hTabDesign,SW_HIDE);
-				ShowWindow(hTabVersion,SW_HIDE);
-				TabCtrl_SetCurFocus(hTab,TAB_GENERAL);
-			}else if(g_iStartTab==TAB_SHOWWINDOW){//表示方法
-				ShowWindow(hTabGeneral,SW_HIDE);
-				ShowWindow(hTabShowWindow,SW_SHOW);
-				ShowWindow(hTabShortcutKey,SW_HIDE);
-				ShowWindow(hTabMouse,SW_HIDE);
-				ShowWindow(hTabDesign,SW_HIDE);
-				ShowWindow(hTabVersion,SW_HIDE);
-				TabCtrl_SetCurFocus(hTab,TAB_SHOWWINDOW);
-			}else if(g_iStartTab==TAB_SHORTCUTKEY){//ショートカットキー
-				ShowWindow(hTabGeneral,SW_HIDE);
-				ShowWindow(hTabShowWindow,SW_HIDE);
-				ShowWindow(hTabShortcutKey,SW_SHOW);
-				ShowWindow(hTabMouse,SW_HIDE);
-				ShowWindow(hTabDesign,SW_HIDE);
-				ShowWindow(hTabVersion,SW_HIDE);
-				TabCtrl_SetCurFocus(hTab,TAB_SHOWWINDOW);
-			}else if(g_iStartTab==TAB_MOUSE){//マウス
-				ShowWindow(hTabGeneral,SW_HIDE);
-				ShowWindow(hTabShowWindow,SW_HIDE);
-				ShowWindow(hTabShortcutKey,SW_HIDE);
-				ShowWindow(hTabMouse,SW_SHOW);
-				ShowWindow(hTabDesign,SW_HIDE);
-				ShowWindow(hTabVersion,SW_HIDE);
-				TabCtrl_SetCurFocus(hTab,TAB_SHOWWINDOW);
-			}else if(g_iStartTab==TAB_DESIGN){//デザイン
-				ShowWindow(hTabGeneral,SW_HIDE);
-				ShowWindow(hTabShowWindow,SW_HIDE);
-				ShowWindow(hTabShortcutKey,SW_HIDE);
-				ShowWindow(hTabMouse,SW_HIDE);
-				ShowWindow(hTabDesign,SW_SHOW);
-				ShowWindow(hTabVersion,SW_HIDE);
-				TabCtrl_SetCurFocus(hTab,TAB_DESIGN);
-			}else{//バージョン情報
-				ShowWindow(hTabGeneral,SW_HIDE);
-				ShowWindow(hTabShowWindow,SW_HIDE);
-				ShowWindow(hTabShortcutKey,SW_HIDE);
-				ShowWindow(hTabMouse,SW_HIDE);
-				ShowWindow(hTabDesign,SW_HIDE);
-				ShowWindow(hTabVersion,SW_SHOW);
-				TabCtrl_SetCurFocus(hTab,TAB_VERSION);
-			}
-
-			SetForegroundWindowEx(hDlg);
-
-			return true;
-		}
-
-		case WM_NOTIFY:{
-			switch(((LPNMHDR)lParam)->idFrom){
-				case IDC_TAB1:
-					switch(((LPNMHDR)lParam)->code){
-						case TCN_SELCHANGE:
-							switch(TabCtrl_GetCurSel(hTab)){
-								case TAB_GENERAL://全般
-									ShowWindow(hTabGeneral,SW_SHOW);
-									ShowWindow(hTabShowWindow,SW_HIDE);
-									ShowWindow(hTabShortcutKey,SW_HIDE);
-									ShowWindow(hTabMouse,SW_HIDE);
-									ShowWindow(hTabDesign,SW_HIDE);
-									ShowWindow(hTabVersion,SW_HIDE);
-									return true;
-
-								case TAB_SHOWWINDOW://表示方法
-									ShowWindow(hTabGeneral,SW_HIDE);
-									ShowWindow(hTabShowWindow,SW_SHOW);
-									ShowWindow(hTabShortcutKey,SW_HIDE);
-									ShowWindow(hTabMouse,SW_HIDE);
-									ShowWindow(hTabDesign,SW_HIDE);
-									ShowWindow(hTabVersion,SW_HIDE);
-									return true;
-
-								case TAB_SHORTCUTKEY://ショートカットキー
-									ShowWindow(hTabGeneral,SW_HIDE);
-									ShowWindow(hTabShowWindow,SW_HIDE);
-									ShowWindow(hTabShortcutKey,SW_SHOW);
-									ShowWindow(hTabMouse,SW_HIDE);
-									ShowWindow(hTabDesign,SW_HIDE);
-									ShowWindow(hTabVersion,SW_HIDE);
-									return true;
-
-								case TAB_MOUSE://マウス
-									ShowWindow(hTabGeneral,SW_HIDE);
-									ShowWindow(hTabShowWindow,SW_HIDE);
-									ShowWindow(hTabShortcutKey,SW_HIDE);
-									ShowWindow(hTabMouse,SW_SHOW);
-									ShowWindow(hTabDesign,SW_HIDE);
-									ShowWindow(hTabVersion,SW_HIDE);
-									return true;
-
-								case TAB_DESIGN://デザイン
-									ShowWindow(hTabGeneral,SW_HIDE);
-									ShowWindow(hTabShowWindow,SW_HIDE);
-									ShowWindow(hTabShortcutKey,SW_HIDE);
-									ShowWindow(hTabMouse,SW_HIDE);
-									ShowWindow(hTabDesign,SW_SHOW);
-									ShowWindow(hTabVersion,SW_HIDE);
-									return true;
-
-								case TAB_VERSION://バージョン情報
-									ShowWindow(hTabGeneral,SW_HIDE);
-									ShowWindow(hTabShowWindow,SW_HIDE);
-									ShowWindow(hTabShortcutKey,SW_HIDE);
-									ShowWindow(hTabMouse,SW_HIDE);
-									ShowWindow(hTabDesign,SW_HIDE);
-									ShowWindow(hTabVersion,SW_SHOW);
-									return true;
-
-								default:
-									break;
-							}
-							break;
-						default:
-							break;
-					}
-			}
-			break;
-		}
-
-		case WM_COMMAND:
-			switch(LOWORD(wParam)){
-				case IDOK:
-					if(GetDlgItem(hTabShortcutKey,IDC_HOTKEY_SHORTCUTKEY)==GetFocus()){
-						//ホットキーコントロールにEnterキーを投げる
-						return (BOOL)CallWindowProc(HotKeyProc,
-													GetDlgItem(hTabShortcutKey,IDC_HOTKEY_SHORTCUTKEY),
-													WM_KEYDOWN,VK_RETURN,0);
-					}
-
-					//「全般」タブ
-					SendMessage(hTabGeneral,WM_CLOSETAB,(WPARAM)0,(LPARAM)0);
-					//「表示方法」タブ
-					SendMessage(hTabShowWindow,WM_CLOSETAB,(WPARAM)0,(LPARAM)0);
-					//「ショートカットキー」タブ
-					SendMessage(hTabShortcutKey,WM_CLOSETAB,(WPARAM)0,(LPARAM)0);
-					//「マウス」タブ
-					SendMessage(hTabMouse,WM_CLOSETAB,(WPARAM)0,(LPARAM)0);
-					//「デザイン」タブ
-					SendMessage(hTabDesign,WM_CLOSETAB,(WPARAM)0,(LPARAM)0);
-					//「バージョン」情報タブ
-					SendMessage(hTabVersion,WM_CLOSETAB,(WPARAM)0,(LPARAM)0);
-
-					//設定を保存
-					g_Config=g_ConfigTmp;
-
-					//cfgファイルに書き込む
-					WritePrivateProfile(GetParent(hDlg));
-
-					EndDialog(hDlg,IDOK);
-					return true;
-
-				case IDCANCEL:
-					if(GetDlgItem(hTabShortcutKey,IDC_HOTKEY_SHORTCUTKEY)==GetFocus()){
-						//ホットキーコントロールにEscキーを投げる
-						return (BOOL)CallWindowProc(HotKeyProc,
-													GetDlgItem(hTabShortcutKey,IDC_HOTKEY_SHORTCUTKEY),
-													WM_KEYDOWN,VK_ESCAPE,0);
-					}
-					//fall through
-				default:
-					EndDialog(hDlg,IDCANCEL);
-					return true;
-			}
-			break;
-
-		case WM_CLOSE:
-			PostMessage(hDlg,WM_COMMAND,(WPARAM)IDCANCEL,(LPARAM)0);
-			return true;
-
-		default:
-			return false;
-	}
-	return false;
 }
 
 //「全般」タブ
@@ -833,6 +613,11 @@ BOOL CALLBACK GeneralTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 			break;
 		}
 
+		case WM_SHOWWINDOW:
+			//タイムアウト設定を同期
+			if(wParam)SetCurrentSettings(hDlg,&g_ConfigTmp,TAB_GENERAL);
+			break;
+
 		case WM_HSCROLL:{
 			TCHAR szPosition[12]={};
 
@@ -877,6 +662,10 @@ BOOL CALLBACK GeneralTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 
 				case IDC_CHECKBOX_SELECTSECONDWINDOW://2番目にアクティブなウインドウを選択[動作]
 					g_ConfigTmp.ListView.bSelectSecondWindow=getCheck(hDlg,LOWORD(wParam));
+					break;
+
+				case IDC_CHECKBOX_THUMBNAIL://サムネイルを表示[動作]
+					g_ConfigTmp.ListView.bThumbnail=getCheck(hDlg,LOWORD(wParam));
 					break;
 
 
@@ -1025,16 +814,36 @@ BOOL CALLBACK ShowWindowTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 					g_ConfigTmp.ShowWindow.bLeftTop=getCheck(hDlg,LOWORD(wParam));
 					break;
 
+				case IDC_CHECKBOX_TOP://上[マウスの移動]
+					g_ConfigTmp.ShowWindow.bTop=getCheck(hDlg,LOWORD(wParam));
+					break;
+
 				case IDC_CHECKBOX_RIGHTTOP://右上[マウスの移動]
 					g_ConfigTmp.ShowWindow.bRightTop=getCheck(hDlg,LOWORD(wParam));
+					break;
+
+				case IDC_CHECKBOX_LEFT://左[マウスの移動]
+					g_ConfigTmp.ShowWindow.bLeft=getCheck(hDlg,LOWORD(wParam));
+					break;
+
+				case IDC_CHECKBOX_RIGHT://右[マウスの移動]
+					g_ConfigTmp.ShowWindow.bRight=getCheck(hDlg,LOWORD(wParam));
 					break;
 
 				case IDC_CHECKBOX_LEFTBOTTOM://左下[マウスの移動]
 					g_ConfigTmp.ShowWindow.bLeftBottom=getCheck(hDlg,LOWORD(wParam));
 					break;
 
+				case IDC_CHECKBOX_BOTTOM://下[マウスの移動]
+					g_ConfigTmp.ShowWindow.bBottom=getCheck(hDlg,LOWORD(wParam));
+					break;
+
 				case IDC_CHECKBOX_RIGHTBOTTOM://右下[マウスの移動]
 					g_ConfigTmp.ShowWindow.bRightBottom=getCheck(hDlg,LOWORD(wParam));
+					break;
+
+				case IDC_CHECKBOX_SHOW_MOUSEWHEEL://マウスホイール回転時のみ[マウスの移動]
+					g_ConfigTmp.ShowWindow.bMouseWheel=getCheck(hDlg,LOWORD(wParam));
 					break;
 
 				case IDC_HOTKEY_DISPLAY://ホットキー
@@ -1062,6 +871,43 @@ BOOL CALLBACK ShowWindowTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 	}
 
 	return false;
+}
+
+//ショートカットキーリストのヘッダーのプロシージャ
+LRESULT CALLBACK ShortcutKeyListHeaderProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
+	switch(uMsg){
+		//ヘッダーサイズの固定
+		case WM_SETCURSOR:
+			return TRUE;
+		case WM_LBUTTONDBLCLK:
+			return FALSE;
+
+		default:
+			break;
+	}
+	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
+}
+
+//ショートカットキーリストのプロシージャ
+LRESULT CALLBACK ShortcutKeyListProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
+	switch(uMsg){
+		//ヘッダーサイズの固定
+		case WM_NOTIFY:
+			if(((LPNMHEADER)lParam)){
+				switch(((LPNMHEADER)lParam)->hdr.code){
+					case HDN_ENDTRACKA:
+					case HDN_BEGINTRACKA:
+					case HDN_BEGINTRACKW:
+					case HDN_ENDTRACKW:
+						return TRUE;
+				}
+			}
+			break;
+
+		default:
+			break;
+	}
+	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
 }
 
 //「ショートカットキー」タブ
@@ -1460,7 +1306,21 @@ BOOL CALLBACK MouseTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 	return false;
 }
 
-//「デザイン」ページ
+//プレビューリストのプロシージャ
+LRESULT CALLBACK PreviewListViewProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
+	switch(uMsg){
+		case WM_LBUTTONDOWN:
+		case WM_RBUTTONDOWN:
+			SetFocus(hWnd);
+			return false;
+
+		default:
+			break;
+	}
+	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
+}
+
+//「デザイン」タブ
 BOOL CALLBACK DesignTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 	static HWND hPreviewList;
 
@@ -2038,7 +1898,116 @@ BOOL CALLBACK DesignTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 	return false;
 }
 
-//「バージョン情報」ページ
+//「高度な設定」タブ
+BOOL CALLBACK AdvancedTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
+	switch(uMsg){
+		case WM_INITDIALOG:{
+			//現在の設定をコントロールに適用
+			SetCurrentSettings(hDlg,&g_ConfigTmp,TAB_ADVANCED);
+			return true;
+		}
+
+		case WM_CTLCOLORSTATIC:{//テキストの背景色を透過させる
+			HDC hDC=(HDC)wParam;
+			SetBkMode(hDC,TRANSPARENT);
+			break;
+		}
+
+		case WM_SHOWWINDOW:
+			//タイムアウト設定を同期
+			if(wParam)SetCurrentSettings(hDlg,&g_ConfigTmp,TAB_ADVANCED);
+			break;
+
+		case WM_COMMAND:
+			switch(LOWORD(wParam)){
+				//[動作]
+				case IDC_CHECKBOX_DRAG_MOUSEHOVER://ドラッグ中はマウスホバーで選択
+					g_ConfigTmp.ListView.bDragMouseHover=getCheck(hDlg,LOWORD(wParam));
+					break;
+
+				case IDC_CHECKBOX_DRAG_TIMEOUT://ドラッグ中はタイムアウトで確定
+					g_ConfigTmp.ListView.bDragTimeOut=getCheck(hDlg,LOWORD(wParam));
+					break;
+
+				case IDC_CHECKBOX_CACHE_ICON://取得したアイコンをキャッシュ
+					g_ConfigTmp.ListView.bCacheIcon=getCheck(hDlg,LOWORD(wParam));
+					break;
+
+				case IDC_CHECKBOX_FRAME://ウインドウにフレームを表示
+					g_ConfigTmp.ListView.bDialogFrame=getCheck(hDlg,LOWORD(wParam));
+					break;
+
+				default:
+					break;
+			}
+
+			switch(HIWORD(wParam)){
+				case EN_CHANGE://エディットボックスの内容が変更される直前
+					switch(LOWORD(wParam)){
+						case IDC_EDIT_TIMEOUT:
+							//タイムアウト[動作]
+							g_ConfigTmp.ListView.iTimeOut=GetIntFromEdit(GetDlgItem(hDlg,LOWORD(wParam)),0,10000);
+							break;
+
+						case IDC_EDIT_THUMBNAIL_SIZE:
+							//サムネイルの大きさ[動作]
+							g_ConfigTmp.ListView.iThumbnailSize=GetIntFromEdit(GetDlgItem(hDlg,LOWORD(wParam)),0,10000);
+							break;
+
+						case IDC_EDIT_THUMBNAIL_DELAY:
+							//サムネイル表示までの時間[動作]
+							g_ConfigTmp.ListView.iThumbnailDelay=GetIntFromEdit(GetDlgItem(hDlg,LOWORD(wParam)),0,10000);
+							break;
+
+						case IDC_EDIT_UNIQUEWINDOW_DELAY:
+							//「候補のウインドウが1つなら確定」遅延時間[インクリメンタルサーチ]
+							g_ConfigTmp.IncrementalSearch.iUniqueWindowDelay=GetIntFromEdit(GetDlgItem(hDlg,LOWORD(wParam)),0,10000);
+							break;
+
+						case IDC_EDIT_MIGEMO_DELAY:
+							//Migemo検索を開始するまでの遅延時間[インクリメンタルサーチ]
+							g_ConfigTmp.IncrementalSearch.iMigemoDelay=GetIntFromEdit(GetDlgItem(hDlg,LOWORD(wParam)),0,10000);
+							break;
+
+						default:
+							break;
+					}
+					break;
+
+				default:
+					break;
+			}
+			break;
+
+		case WM_CLOSETAB:
+			//除外するファイル名[フィルタ]
+			if(lstrlen(g_ConfigTmp.Exclude.szFileName)&&
+			   g_ConfigTmp.Exclude.szFileName[lstrlen(g_ConfigTmp.Exclude.szFileName)-1]!=';'){
+				lstrcat(g_ConfigTmp.Exclude.szFileName,_T(";"));
+			}
+			GetWindowText(GetDlgItem(hDlg,IDC_EDIT_EXCLUDE_FILENAME),g_ConfigTmp.Exclude.szFileName,MAX_PATH);
+			return true;
+
+		default:
+			break;
+	}
+	return false;
+}
+
+//ハイパーリンクのプロシージャ
+LRESULT CALLBACK HyperLinkProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
+	switch(uMsg){
+		case WM_SETCURSOR:
+			SetCursor(LoadCursor(NULL,IDC_HAND));
+			return true;
+
+		default:
+			break;
+	}
+	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
+}
+
+//「バージョン情報」タブ
 BOOL CALLBACK VersionTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 	static HICON hIcon;
 
@@ -2095,101 +2064,211 @@ BOOL CALLBACK VersionTabProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
 	return false;
 }
 
-//ショートカットキーリストのプロシージャ
-LRESULT CALLBACK ShortcutKeyListProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
-	switch(uMsg){
-		//ヘッダーサイズの固定
-		case WM_NOTIFY:
-			if(((LPNMHEADER)lParam)){
-				switch(((LPNMHEADER)lParam)->hdr.code){
-					case HDN_ENDTRACKA:
-					case HDN_BEGINTRACKA:
-					case HDN_BEGINTRACKW:
-					case HDN_ENDTRACKW:
-						return TRUE;
+//設定ダイアログのプロシージャ
+BOOL CALLBACK SettingsDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam){
+	static HWND hTab;
+	static HWND hTabGeneral;//「全般」タブ
+	static HWND hTabShowWindow;//「表示方法」タブ
+	static HWND hTabShortcutKey;//「ショートカットキー」タブ
+	static HWND hTabMouse;//「マウス」タブ
+	static HWND hTabDesign;//「デザイン」タブ
+	static HWND hTabAdvanced;//「高度な設定」タブ
+	static HWND hTabVersion;//「バージョン情報」タブ
+
+	typedef struct{
+		HWND* hTab;
+		UINT uItem;
+	}TAB_TABLE;
+
+	static TAB_TABLE Tab_Table[]={
+		{
+			&hTabGeneral,
+			TAB_GENERAL
+		},
+		{
+			&hTabShowWindow,
+			TAB_SHOWWINDOW,
+		},
+		{
+			&hTabShortcutKey,
+			TAB_SHORTCUTKEY,
+		},
+		{
+			&hTabMouse,
+			TAB_MOUSE,
+		},
+		{
+			&hTabDesign,
+			TAB_DESIGN,
+		},
+		{
+			&hTabAdvanced,
+			TAB_ADVANCED,
+		},
+		{
+			&hTabVersion,
+			TAB_VERSION,
+		},
+	};
+
+	switch (uMsg){
+		case WM_INITDIALOG:{
+			//設定一時保存
+			g_ConfigTmp=g_Config;
+
+			//画面中央に表示
+			SetCenterWindow(hDlg);
+			hTab=GetDlgItem(hDlg,IDC_TAB1);
+
+			//タブ追加
+			TC_ITEM TabItem;
+
+			TabItem.mask=TCIF_TEXT;
+			TabItem.pszText=(LPTSTR)_T("全般");
+			TabCtrl_InsertItem(hTab,TAB_GENERAL,&TabItem);
+
+			TabItem.pszText=(LPTSTR)_T("表示方法");
+			TabCtrl_InsertItem(hTab,TAB_SHOWWINDOW,&TabItem);
+
+			TabItem.pszText=(LPTSTR)_T("ショートカットキー");
+			TabCtrl_InsertItem(hTab,TAB_SHORTCUTKEY,&TabItem);
+
+			TabItem.pszText=(LPTSTR)_T("マウス");
+			TabCtrl_InsertItem(hTab,TAB_MOUSE,&TabItem);
+
+			TabItem.pszText=(LPTSTR)_T("デザイン");
+			TabCtrl_InsertItem(hTab,TAB_DESIGN,&TabItem);
+
+			TabItem.pszText=(LPTSTR)_T("高度な設定");
+			TabCtrl_InsertItem(hTab,TAB_ADVANCED,&TabItem);
+
+			TabItem.pszText=(LPTSTR)_T("バージョン情報");
+			TabCtrl_InsertItem(hTab,TAB_VERSION,&TabItem);
+
+			//タブ(ダイアログ)作成
+			hTabGeneral=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_GENERALTAB),hDlg,(DLGPROC)GeneralTabProc);
+			hTabShowWindow=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_SHOWWINDOWTAB),hDlg,(DLGPROC)ShowWindowTabProc);
+			hTabShortcutKey=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_SHORTCUTKEYTAB),hDlg,(DLGPROC)ShortcutKeyTabProc);
+			hTabMouse=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_MOUSETAB),hDlg,(DLGPROC)MouseTabProc);
+			hTabDesign=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_DESIGNTAB),hDlg,(DLGPROC)DesignTabProc);
+			hTabAdvanced=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_ADVANCEDTAB),hDlg,(DLGPROC)AdvancedTabProc);
+			hTabVersion=CreateDialog(g_hInstance,MAKEINTRESOURCE(IDD_VERSIONTAB),hDlg,(DLGPROC)VersionTabProc);
+
+			//タブの座標取得
+			RECT rc;
+			LPPOINT lpt=(LPPOINT)&rc;
+
+			GetClientRect(hTab,&rc);
+			TabCtrl_AdjustRect(hTab,false,&rc);
+			//座標変換
+			MapWindowPoints(hTab,hDlg,lpt,2);
+
+			//タブの位置とサイズの調整
+			HDWP hdwp=BeginDeferWindowPos(TAB_VERSION);
+			for(int i=0;i<ARRAY_SIZEOF(Tab_Table);i++){
+				hdwp=DeferWindowPos(hdwp,
+									*Tab_Table[i].hTab,
+									NULL,
+									rc.left,
+									rc.top,
+									rc.right-rc.left,
+									rc.bottom-rc.top,
+									0);
+			}
+			EndDeferWindowPos(hdwp);
+
+			//タブを表示
+			for(int i=0;i<ARRAY_SIZEOF(Tab_Table);i++){
+				if(g_iStartTab==Tab_Table[i].uItem){
+					ShowWindow(*Tab_Table[i].hTab,SW_SHOW);
+					TabCtrl_SetCurFocus(hTab,Tab_Table[i].uItem);
+				}else{
+					ShowWindow(*Tab_Table[i].hTab,SW_HIDE);
 				}
+			}
+
+			SetForegroundWindowEx(hDlg);
+
+			return true;
+		}
+
+		case WM_NOTIFY:{
+			switch(((LPNMHDR)lParam)->idFrom){
+				case IDC_TAB1:
+					switch(((LPNMHDR)lParam)->code){
+						case TCN_SELCHANGE:
+							for(int i=0,iCurSel=TabCtrl_GetCurSel(hTab);i<ARRAY_SIZEOF(Tab_Table);i++){
+								if(iCurSel==Tab_Table[i].uItem){
+									//タブを切り替え
+									ShowWindow(*Tab_Table[i].hTab,SW_SHOW);
+								}else{
+									ShowWindow(*Tab_Table[i].hTab,SW_HIDE);
+								}
+							}
+							break;
+						default:
+							break;
+					}
+			}
+			break;
+		}
+
+		case WM_COMMAND:
+			switch(LOWORD(wParam)){
+				case IDOK:
+					if(GetDlgItem(hTabShortcutKey,IDC_HOTKEY_SHORTCUTKEY)==GetFocus()){
+						//ホットキーコントロールにEnterキーを投げる
+						return (BOOL)CallWindowProc(HotKeyProc,
+													GetDlgItem(hTabShortcutKey,IDC_HOTKEY_SHORTCUTKEY),
+													WM_KEYDOWN,VK_RETURN,0);
+					}
+
+					//タブを閉じる
+					for(int i=0;i<ARRAY_SIZEOF(Tab_Table);i++){
+						SendMessage(*Tab_Table[i].hTab,WM_CLOSETAB,(WPARAM)0,(LPARAM)0);
+					}
+
+					//設定を保存
+					g_Config=g_ConfigTmp;
+
+					//cfgファイルに書き込む
+					WritePrivateProfile(GetParent(hDlg));
+
+					EndDialog(hDlg,IDOK);
+					return true;
+
+				case IDCANCEL:
+					if(GetDlgItem(hTabShortcutKey,IDC_HOTKEY_SHORTCUTKEY)==GetFocus()){
+						//ホットキーコントロールにEscキーを投げる
+						return (BOOL)CallWindowProc(HotKeyProc,
+													GetDlgItem(hTabShortcutKey,IDC_HOTKEY_SHORTCUTKEY),
+													WM_KEYDOWN,VK_ESCAPE,0);
+					}
+					//fall through
+				default:
+					EndDialog(hDlg,IDCANCEL);
+					return true;
 			}
 			break;
 
-		default:
-			break;
-	}
-	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
-}
-
-
-//ショートカットキーリストのヘッダーのプロシージャ
-LRESULT CALLBACK ShortcutKeyListHeaderProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
-	switch(uMsg){
-		//ヘッダーサイズの固定
-		case WM_SETCURSOR:
-			return TRUE;
-		case WM_LBUTTONDBLCLK:
-			return FALSE;
-
-		default:
-			break;
-	}
-	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
-}
-
-//ホットキーコントロールのプロシージャ
-LRESULT CALLBACK HotKeyProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
-	switch(uMsg){
-		case WM_KEYDOWN:
-			switch(wParam){
-				case VK_RETURN:
-				case VK_TAB:
-				case VK_SPACE:
-				case VK_DELETE:
-				case VK_ESCAPE:
-				case VK_BACK:{
-					//エンターキーやスペースキーを入力可能に
-					BYTE byKey=0;
-
-					if(GetKeyState(VK_SHIFT)&0x8000)byKey|=HOTKEYF_SHIFT;
-					if(GetKeyState(VK_CONTROL)&0x8000)byKey|=HOTKEYF_CONTROL;
-					if(GetKeyState(VK_MENU)&0x8000)byKey|=HOTKEYF_ALT;
-					if(lParam&0x24)byKey|=HOTKEYF_EXT;
-
-					SendMessage(hWnd,HKM_SETHOTKEY,MAKEWORD(wParam,byKey),0);
-					return TRUE;
-				}
-
-			default:
-				break;
-		}
-		break;
-
-		default:
-			break;
-	}
-	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
-}
-
-//プレビューリストのプロシージャ
-LRESULT CALLBACK PreviewListViewProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
-	switch(uMsg){
-		case WM_LBUTTONDOWN:
-		case WM_RBUTTONDOWN:
-			SetFocus(hWnd);
-			return false;
-
-		default:
-			break;
-	}
-	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
-}
-
-//ハイパーリンクのプロシージャ
-LRESULT CALLBACK HyperLinkProc(HWND hWnd,UINT uMsg,WPARAM wParam,LPARAM lParam){
-	switch(uMsg){
-		case WM_SETCURSOR:
-			SetCursor(LoadCursor(NULL,IDC_HAND));
+		case WM_CLOSE:
+			PostMessage(hDlg,WM_COMMAND,(WPARAM)IDCANCEL,(LPARAM)0);
 			return true;
 
 		default:
-			break;
+			return false;
 	}
-	return CallWindowProc((WNDPROC)GetWindowLongPtr(hWnd,GWLP_USERDATA),hWnd,uMsg,wParam,lParam);
+	return false;
+}
+
+//設定ウインドウを表示する
+INT_PTR ShowSettingsDialog(HWND hWnd,int iStartTab){
+	INT_PTR iResult=IDCANCEL;
+	HWND hForeground=GetForegroundWindow();
+	g_bSettingsDialog=true;
+	g_iStartTab=iStartTab;
+	iResult=DialogBox(g_hInstance,MAKEINTRESOURCE(IDD_SETTINGSDIALOG),hWnd,(DLGPROC)SettingsDialogProc);
+	g_bSettingsDialog=false;
+	if(hForeground!=hWnd)SetForegroundWindowEx(hForeground);
+	return iResult;
 }

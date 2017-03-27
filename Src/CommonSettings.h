@@ -2,7 +2,7 @@
 //設定関係共通ヘッダファイル
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.61
+	Tascher Ver.1.62
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -390,6 +390,11 @@ static SHORTCUTKEYCMD_TABLE ShortcutKeyCmd_Table[]={
 		_T("子プロセスを表示"),
 	},
 	{
+		IDM_KEY_THUMBNAIL,
+		_T("thumbnail"),
+		_T("サムネイルを表示"),
+	},
+	{
 		IDM_KEY_COPY_NAME,
 		_T("copyname"),
 		_T("ファイル名をコピー"),
@@ -476,6 +481,15 @@ struct LISTVIEW{
 	//2番目にアクティブなウインドウを選択[動作]
 	bool bSelectSecondWindow;
 
+	//サムネイルを表示
+	bool bThumbnail;
+
+	//サムネイルの大きさ
+	int iThumbnailSize;
+
+	//サムネイルを表示するまでの時間
+	int iThumbnailDelay;
+
 	//不透明度
 	BYTE byAlpha;
 
@@ -532,15 +546,24 @@ struct ITEMDESIGN{
 };
 
 struct SHOWWINDOW{
-	//四隅に移動
 	//左上[マウスの移動]
 	bool bLeftTop;
+	//上[マウスの移動]
+	bool bTop;
 	//右上[マウスの移動]
 	bool bRightTop;
+	//左[マウスの移動]
+	bool bLeft;
+	//右[マウスの移動]
+	bool bRight;
 	//左下[マウスの移動]
 	bool bLeftBottom;
+	//下[マウスの移動]
+	bool bBottom;
 	//右下[マウスの移動]
 	bool bRightBottom;
+	//マウスホイール回転時のみ[マウスの移動]
+	bool bMouseWheel;
 
 	//ホットキー
 	WORD wHotKey;

@@ -2,7 +2,7 @@
 //WM_MOUSEMOVEをフック
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.61
+	Tascher Ver.1.62
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -33,9 +33,13 @@ HWND g_post_wnd;
 LRESULT CALLBACK LowLevelMouseHookProc(int code,WPARAM wParam,LPARAM lParam){
 	if(g_hook_process_id==GetCurrentProcessId()&&
 	   code==HC_ACTION){
+		MSLLHOOKSTRUCT* pMLLHS=(MSLLHOOKSTRUCT*)lParam;
+
 		if(wParam==WM_MOUSEMOVE){
-			MSLLHOOKSTRUCT* pMLLHS=(MSLLHOOKSTRUCT*)lParam;
-			PostMessage(g_post_wnd,WM_MOUSEMOVE,pMLLHS->pt.x,pMLLHS->pt.y);
+			PostMessage(g_post_wnd,wParam,pMLLHS->pt.x,pMLLHS->pt.y);
+		}else if(wParam==WM_MOUSEWHEEL){
+			//WM_MOUSEWHEELを送るとWindowProc()に届かないのでRegisterWindowMessage()を送る
+			PostMessage(g_post_wnd,RegisterWindowMessage(_T("MSG_MOUSEWHEEL")),pMLLHS->pt.x,pMLLHS->pt.y);
 		}
 	}
 
@@ -58,8 +62,6 @@ BOOL DLL_EXPORT installMouseLLHook(const DWORD hook_process_id,HWND post_wnd){
 BOOL DLL_EXPORT uninstallMouseLLHook(){
 	if(g_hook_handle!=NULL&&
 	   UnhookWindowsHookEx(g_hook_handle)!=0){
-		//WM_NULLを投げると7-zip32.dllが処理中断してしまうので注意
-//		PostMessage(HWND_BROADCAST,WM_NULL,0,0);
 		g_hook_handle=NULL;
 		return TRUE;
 	}

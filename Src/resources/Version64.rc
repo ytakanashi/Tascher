@@ -18,8 +18,8 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 //
 LANGUAGE LANG_JAPANESE, SUBLANG_JAPANESE_JAPAN
 1 VERSIONINFO
-    FILEVERSION     1,6,2,0
-    PRODUCTVERSION  1,6,2,0
+    FILEVERSION     1,6,3,0
+    PRODUCTVERSION  1,6,3,0
     FILEOS          VOS_NT_WINDOWS32
     FILETYPE        VFT_UNKNOWN
     FILESUBTYPE     VFT2_UNKNOWN
@@ -33,12 +33,12 @@ LANGUAGE LANG_JAPANESE, SUBLANG_JAPANESE_JAPAN
             VALUE "Comments", "Tascher x64"
             VALUE "CompanyName", "Frost Moon Project"
             VALUE "FileDescription", "Tascher x64"
-            VALUE "FileVersion", "1.62"
+            VALUE "FileVersion", "1.63"
             VALUE "InternalName", "Tascher x64"
             VALUE "LegalCopyright", "Coded by x@rgs"
             VALUE "OriginalFilename", "Tascher.exe"
             VALUE "ProductName", "Tascher x64"
-            VALUE "ProductVersion", "1.62"
+            VALUE "ProductVersion", "1.63"
         }
     }
     BLOCK "VarFileInfo"

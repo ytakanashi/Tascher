@@ -2,7 +2,7 @@
 //cfgファイル操作
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.62
+	Tascher Ver.1.63
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -21,17 +21,64 @@
 
 TCHAR g_szPrivateProfile[MAX_PATH]={};
 
+typedef struct{
+	LPCTSTR szKeyName;
+	LPCTSTR szKeyNameCursor;
+	SCC_CORNERS eDefault;
+}CURSORCORNER_TABLE;
+
+static CURSORCORNER_TABLE CursorCorner_Table[]={
+	{_T(""),_T(""),SCC_NONE},
+	{
+		_T("LeftTop"),
+		_T("LeftTopCursor"),
+		SCC_RIGHTBOTTOM,
+	},
+	{
+		_T("Top"),
+		_T("TopCursor"),
+		SCC_BOTTOM,
+	},
+	{
+		_T("RightTop"),
+		_T("RightTopCursor"),
+		SCC_LEFTBOTTOM,
+	},
+	{
+		_T("Left"),
+		_T("LeftCursor"),
+		SCC_RIGHT,
+	},
+	{
+		_T("Right"),
+		_T("RightCursor"),
+		SCC_LEFT,
+	},
+	{
+		_T("LeftBottom"),
+		_T("LeftBottomCursor"),
+		SCC_RIGHTTOP,
+	},
+	{
+		_T("Bottom"),
+		_T("BottomCursor"),
+		SCC_TOP,
+	},
+	{
+		_T("RightBottom"),
+		_T("RightBottomCursor"),
+		SCC_LEFTTOP,
+	},
+};
 
 
 //cfgファイルパスを取得
 void GetPrivateProfilePath(){
-	TCHAR szBuffer[32]={};
+	TCHAR szFileName[32]={};
 
 	path::GetExeDirectory(g_szPrivateProfile,MAX_PATH);
-	LoadString(g_hInstance,IDS_FILENAME,(LPTSTR)&szBuffer,sizeof(szBuffer)-1);
-	lstrcat(g_szPrivateProfile,_T("\\"));
-	lstrcat(g_szPrivateProfile,szBuffer);
-	lstrcat(g_szPrivateProfile,_T(".cfg"));
+	LoadString(g_hInstance,IDS_FILENAME,(LPTSTR)&szFileName,sizeof(szFileName)-1);
+	wsprintf(g_szPrivateProfile,_T("%s\\%s.cfg"),g_szPrivateProfile,szFileName);
 	return;
 }
 
@@ -61,21 +108,24 @@ void WritePrivateProfile(HWND hWnd){
 	//ドラッグ中であればタイムアウトで確定
 	WritePrivateProfileInt(_T("ListView"),_T("DragTimeOut"),g_Config.ListView.bDragTimeOut,g_szPrivateProfile);
 	//タスクバー相当の表示[動作]
-	WritePrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),g_Config.ListView.bTaskBarEquivalent,g_szPrivateProfile);
+//	WritePrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),g_Config.ListView.bTaskBarEquivalent,g_szPrivateProfile);
 	//2番目にアクティブなウインドウを選択[動作]
 	WritePrivateProfileInt(_T("ListView"),_T("SelectSecondWindow"),g_Config.ListView.bSelectSecondWindow,g_szPrivateProfile);
 	//サムネイルを表示[動作]
-	WritePrivateProfileInt(_T("ListView"),_T("Thumbnail"),g_Config.ListView.bThumbnail,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ListView"),_T("Thumbnail"),g_Config.ListView.uThumbnail,g_szPrivateProfile);
 	//サムネイルの大きさ
 	WritePrivateProfileInt(_T("ListView"),_T("ThumbnailSize"),g_Config.ListView.iThumbnailSize,g_szPrivateProfile);
+	//サムネイルを元の大きさで表示
+	WritePrivateProfileInt(_T("ListView"),_T("ThumbnailOriginalSize"),g_Config.ListView.bThumbnailOriginalSize,g_szPrivateProfile);
 	//サムネイルを表示するまでの時間
 	WritePrivateProfileInt(_T("ListView"),_T("ThumbnailDelay"),g_Config.ListView.iThumbnailDelay,g_szPrivateProfile);
+	//サムネイルの垂直方向揃え位置
+	WritePrivateProfileInt(_T("ListView"),_T("ThumbnailVerticalAlign"),g_Config.ListView.uThumbnailVerticalAlign,g_szPrivateProfile);
+
 	//[不透明度]
-	WritePrivateProfileInt(_T("ListView"),_T("Alpha"),g_Config.ListView.byAlpha,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ListView"),_T("Opacity"),g_Config.ListView.byOpacity,g_szPrivateProfile);
 	//アイコンなし(大)、アイコンなし(小)、小さなアイコン、大きなアイコン[表示項目]
 	WritePrivateProfileInt(_T("ListView"),_T("Icon"),g_Config.ListView.iIcon,g_szPrivateProfile);
-	//リスト作成時のアイコンを使用する
-	WritePrivateProfileInt(_T("ListView"),_T("CacheIcon"),g_Config.ListView.bCacheIcon,g_szPrivateProfile);
 	//デスクトップ[表示項目]
 	WritePrivateProfileInt(_T("ListView"),_T("DesktopItem"),g_Config.ListView.bDesktopItem,g_szPrivateProfile);
 	//キャンセル[表示項目]
@@ -83,6 +133,14 @@ void WritePrivateProfile(HWND hWnd){
 
 	//フレームを表示
 	WritePrivateProfileInt(_T("ListView"),_T("DialogFrame"),g_Config.ListView.bDialogFrame,g_szPrivateProfile);
+
+	//ダブルクリックとして判定する時間
+	WritePrivateProfileInt(_T("ListView"),_T("DoubleClickTime"),g_Config.ListView.iDoubleClickTime,g_szPrivateProfile);
+	//クリック+マウスホイール上下として判定する時間
+	WritePrivateProfileInt(_T("ListView"),_T("MouseWheelClickTime"),g_Config.ListView.iMouseWheelClickTime,g_szPrivateProfile);
+
+	//カーソルを非表示にするまでの時間
+	WritePrivateProfileInt(_T("ListView"),_T("HideCursorTime"),g_Config.ListView.iHideCursorTime,g_szPrivateProfile);
 
 	//表示項目(カラム幅で決定)
 	//並び順
@@ -121,9 +179,15 @@ void WritePrivateProfile(HWND hWnd){
 	//Migemo検索を開始するまでの時間
 	WritePrivateProfileInt(_T("IncrementalSearch"),_T("MigemoDelay"),g_Config.IncrementalSearch.iMigemoDelay,g_szPrivateProfile);
 
+	//Migemoを読み込んだままにする
+	WritePrivateProfileInt(_T("IncrementalSearch"),_T("NoUnloadMigemo"),g_Config.IncrementalSearch.bNoUnloadMigemo,g_szPrivateProfile);
 
-	//スタートアップに追加する(自動起動)
+
+	//自動起動する
 	WritePrivateProfileInt(_T("General"),_T("AutoStart"),g_Config.bAutoStart,g_szPrivateProfile);
+
+	//管理者権限で起動する
+	WritePrivateProfileInt(_T("General"),_T("RunAsAdministrator"),g_Config.bRunAsAdministrator,g_szPrivateProfile);
 
 	TCHAR szTmp[32]={};
 
@@ -132,25 +196,45 @@ void WritePrivateProfile(HWND hWnd){
 	WritePrivateProfileInt(_T("Background"),_T("xOffset"),g_Config.Background.iXOffset,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("Background"),_T("yOffset"),g_Config.Background.iYOffset,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("Background"),_T("ResizePercent"),g_Config.Background.byResizePercent,g_szPrivateProfile);
-	WritePrivateProfileInt(_T("Background"),_T("Alpha"),g_Config.Background.byAlpha,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("Background"),_T("Opacity"),g_Config.Background.byOpacity,g_szPrivateProfile);
 
 
 	//表示操作
-	WritePrivateProfileInt(_T("ShowWindow"),_T("LeftTop"),g_Config.ShowWindow.bLeftTop,g_szPrivateProfile);
-	WritePrivateProfileInt(_T("ShowWindow"),_T("Top"),g_Config.ShowWindow.bTop,g_szPrivateProfile);
-	WritePrivateProfileInt(_T("ShowWindow"),_T("RightTop"),g_Config.ShowWindow.bRightTop,g_szPrivateProfile);
-	WritePrivateProfileInt(_T("ShowWindow"),_T("Left"),g_Config.ShowWindow.bLeft,g_szPrivateProfile);
-	WritePrivateProfileInt(_T("ShowWindow"),_T("Right"),g_Config.ShowWindow.bRight,g_szPrivateProfile);
-	WritePrivateProfileInt(_T("ShowWindow"),_T("LeftBottom"),g_Config.ShowWindow.bLeftBottom,g_szPrivateProfile);
-	WritePrivateProfileInt(_T("ShowWindow"),_T("Bottom"),g_Config.ShowWindow.bBottom,g_szPrivateProfile);
-	WritePrivateProfileInt(_T("ShowWindow"),_T("RightBottom"),g_Config.ShowWindow.bRightBottom,g_szPrivateProfile);
+	for(UINT i=1;i<SCC_CENTER;i++){
+		WritePrivateProfileInt(_T("ShowWindow"),CursorCorner_Table[i].szKeyName,g_Config.ShowWindow.ccCursorCorners[i].bValid,g_szPrivateProfile);
+		WritePrivateProfileInt(_T("ShowWindow"),CursorCorner_Table[i].szKeyNameCursor,g_Config.ShowWindow.ccCursorCorners[i].eDestCorner,g_szPrivateProfile);
+	}
+	//選択項目にカーソルを移動[マウスの移動]
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseMoveCursorSelectedWindow"),g_Config.ShowWindow.bMouseMoveCursorSelectedWindow,g_szPrivateProfile);
+	//選択項目にカーソルを移動[ホットキー]
+	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorMouseSelectedWindow"),g_Config.ShowWindow.bHotKeyMoveCursorSelectedWindow,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseWheel"),g_Config.ShowWindow.bMouseWheel,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorCorner"),g_Config.ShowWindow.eHotKeyCursorCorner,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKey"),g_Config.ShowWindow.wHotKey,g_szPrivateProfile);
+	//「選択項目にカーソルを移動」が有効なら表示時に移動
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MoveCursorAtStart"),g_Config.ShowWindow.bMoveCursorAtStart,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("CursorCornerDelay"),g_Config.ShowWindow.iCursorCornerDelay,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseEachMonitor"),g_Config.ShowWindow.bMouseEachMonitor,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseCursorMarginHorizontal"),g_Config.ShowWindow.iMouseCursorMarginHorizontal,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseCursorMarginVertical"),g_Config.ShowWindow.iMouseCursorMarginVertical,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorMarginHorizontal"),g_Config.ShowWindow.iHotKeyCursorMarginHorizontal,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorMarginVertical"),g_Config.ShowWindow.iHotKeyCursorMarginVertical,g_szPrivateProfile);
+	//カーソルを閉じ込める
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseClipCursorMode"),g_Config.ShowWindow.iMouseClipCursorMode,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseClipCursorTime"),g_Config.ShowWindow.iMouseClipCursorTime,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKeyClipCursorMode"),g_Config.ShowWindow.iHotKeyClipCursorMode,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKeyClipCursorTime"),g_Config.ShowWindow.iHotKeyClipCursorTime,g_szPrivateProfile);
+	//画面端と判断する端からの距離
+	WritePrivateProfileInt(_T("ShowWindow"),_T("LeftCornerDistance"),g_Config.ShowWindow.iLeftCornerDistance,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("RightCornerDistance"),g_Config.ShowWindow.iRightCornerDistance,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("TopCornerDistance"),g_Config.ShowWindow.iTopCornerDistance,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("BottomCornerDistance"),g_Config.ShowWindow.iBottomCornerDistance,g_szPrivateProfile);
 
 
 	//ショートカットキー
-	//セクション内のキーをすべて削除
+	//セクション内のキーを一旦すべて削除
 	WritePrivateProfileString(_T("ShortcutKey"),NULL,NULL,g_szPrivateProfile);
+	//追加
 	for(UINT i=0;i<MAX_SHORTCUTKEY;i++){
 		wsprintf(szTmp,_T("%d"),g_Config.ShortcutKey.sKeyTable[i].wKey);
 
@@ -164,8 +248,9 @@ void WritePrivateProfile(HWND hWnd){
 
 
 	//マウス
-	//セクション内のキーをすべて削除
+	//セクション内のキーを一旦すべて削除
 	WritePrivateProfileString(_T("Mouse"),NULL,NULL,g_szPrivateProfile);
+	//追加
 	for(UINT i=0;i<SMOUSE_NUM;i++){
 		if(!g_Config.Mouse.sMouseTable[i].uCmdId)continue;
 
@@ -206,6 +291,36 @@ void WritePrivateProfile(HWND hWnd){
 
 	//除外するファイル名たち(;区切り)
 	WritePrivateProfileString(_T("Exclude"),_T("FileName"),g_Config.Exclude.szFileName,g_szPrivateProfile);
+
+	//ウインドウリストを表示するモニタ
+	WritePrivateProfileInt(_T("MultiMonitor"),_T("ActiveMonitorMode"),g_Config.MultiMonitor.iActiveMonitorMode,g_szPrivateProfile);
+	//ウインドウリストを表示するモニタ名
+	WritePrivateProfileString(_T("MultiMonitor"),_T("MonitorName"),g_Config.MultiMonitor.szMonitorName,g_szPrivateProfile);
+	//アクティブなモニタのウインドウのみ表示
+	WritePrivateProfileInt(_T("MultiMonitor"),_T("OnlyActiveMonitor"),g_Config.MultiMonitor.bOnlyActiveMonitor,g_szPrivateProfile);
+
+	//アクティブな仮想デスクトップのウインドウのみ表示
+	WritePrivateProfileInt(_T("VirtualDesktop"),_T("OnlyActiveVirtualDesktop"),g_Config.VirtualDesktop.bOnlyActiveVirtualDesktop,g_szPrivateProfile);
+
+
+	for(UINT i=1;i<=MAX_COMMAND;i++){
+		TCHAR szKey[24];
+
+		wsprintf(szKey,_T("Command%d"),i);
+		if(lstrlen(g_Config.Command[i].szCommandName)){
+			WritePrivateProfileString(szKey,_T("CommandName"),g_Config.Command[i].szCommandName,g_szPrivateProfile);
+			WritePrivateProfileInt(szKey,_T("CommandMode"),g_Config.Command[i].uCommandMode,g_szPrivateProfile);
+			WritePrivateProfileInt(szKey,_T("CommandOption"),g_Config.Command[i].uCommandOption,g_szPrivateProfile);
+			WritePrivateProfileString(szKey,_T("FilePath"),g_Config.Command[i].szFilePath,g_szPrivateProfile);
+			WritePrivateProfileString(szKey,_T("Parameters"),g_Config.Command[i].szParameters,g_szPrivateProfile);
+			WritePrivateProfileString(szKey,_T("WorkingDirectory"),g_Config.Command[i].szWorkingDirectory,g_szPrivateProfile);
+			WritePrivateProfileInt(szKey,_T("CommandShow"),g_Config.Command[i].uCmdShow,g_szPrivateProfile);
+		}else{
+			//キーを削除
+			WritePrivateProfileString(szKey,NULL,NULL,g_szPrivateProfile);
+		}
+	}
+
 	return;
 }
 
@@ -230,35 +345,46 @@ void ReadPrivateProfile(){
 	//ドラッグ中であればタイムアウトで確定
 	g_Config.ListView.bDragTimeOut=GetPrivateProfileInt(_T("ListView"),_T("DragTimeOut"),1,g_szPrivateProfile)!=0;
 	//タスクバー相当の表示[動作]
-	g_Config.ListView.bTaskBarEquivalent=GetPrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),1,g_szPrivateProfile)!=0;
+//	g_Config.ListView.bTaskBarEquivalent=GetPrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),1,g_szPrivateProfile)!=0;
 	//2番目にアクティブなウインドウを選択[動作]
 	g_Config.ListView.bSelectSecondWindow=GetPrivateProfileInt(_T("ListView"),_T("SelectSecondWindow"),1,g_szPrivateProfile)!=0;
-	//サムネイルを表示[動作]
-	g_Config.ListView.bThumbnail=GetPrivateProfileInt(_T("ListView"),_T("Thumbnail"),1,g_szPrivateProfile)!=0;
+	//サムネイルを表示[動作] 表示位置[高度な設定]
+	g_Config.ListView.uThumbnail=GetPrivateProfileInt(_T("ListView"),_T("Thumbnail"),THUMBNAIL_RIGHT_SIDE,g_szPrivateProfile);
+	g_Config.ListView.uThumbnail=(INRANGE(THUMBNAIL_NO,g_Config.ListView.uThumbnail,THUMBNAIL_RIGHT_SIDE))?g_Config.ListView.uThumbnail:THUMBNAIL_RIGHT_SIDE;
 	//サムネイルの大きさ
-	g_Config.ListView.iThumbnailSize=GetPrivateProfileInt(_T("ListView"),_T("ThumbnailSize"),300,g_szPrivateProfile);
+	g_Config.ListView.iThumbnailSize=GetPrivateProfileInt(_T("ListView"),_T("ThumbnailSize"),400,g_szPrivateProfile);
+	//サムネイルを元の大きさで表示
+	g_Config.ListView.bThumbnailOriginalSize=GetPrivateProfileInt(_T("ListView"),_T("ThumbnailOriginalSize"),0,g_szPrivateProfile)!=0;
 	//サムネイルを表示するまでの時間
-	g_Config.ListView.iThumbnailDelay=GetPrivateProfileInt(_T("ListView"),_T("ThumbnailDelay"),1000,g_szPrivateProfile);
+	g_Config.ListView.iThumbnailDelay=GetPrivateProfileInt(_T("ListView"),_T("ThumbnailDelay"),0,g_szPrivateProfile);
+	//サムネイルの垂直方向揃え位置
+	g_Config.ListView.uThumbnailVerticalAlign=GetPrivateProfileInt(_T("ListView"),_T("ThumbnailVerticalAlign"),0,g_szPrivateProfile);
+	g_Config.ListView.uThumbnailVerticalAlign=(INRANGE(THUMBNAIL_VERTICALALIGN_TOP,g_Config.ListView.uThumbnailVerticalAlign,THUMBNAIL_VERTICALALIGN_SELECTED_ITEM))?g_Config.ListView.uThumbnailVerticalAlign:THUMBNAIL_VERTICALALIGN_TOP;
 
 	//[不透明度]
-	g_Config.ListView.byAlpha=GetPrivateProfileInt(_T("ListView"),_T("Alpha"),255,g_szPrivateProfile);
+	g_Config.ListView.byOpacity=GetPrivateProfileInt(_T("ListView"),_T("Opacity"),100,g_szPrivateProfile);
+	g_Config.ListView.byOpacity=(INRANGE(0,g_Config.ListView.byOpacity,100))?g_Config.ListView.byOpacity:100;
 
 	//アイコンなし(大)、アイコンなし(小)、小さなアイコン、大きなアイコン[表示項目]
 	g_Config.ListView.iIcon=GetPrivateProfileInt(_T("ListView"),_T("Icon"),LISTICON_BIG,g_szPrivateProfile);
-	//リスト作成時のアイコンを使用する
-	g_Config.ListView.bCacheIcon=GetPrivateProfileInt(_T("ListView"),_T("CacheIcon"),1,g_szPrivateProfile)!=0;
+	g_Config.ListView.iIcon=(INRANGE(LISTICON_NO,g_Config.ListView.iIcon,LISTICON_BIG))?g_Config.ListView.iIcon:LISTICON_BIG;
 	//デスクトップ[表示項目]
 	g_Config.ListView.bDesktopItem=GetPrivateProfileInt(_T("ListView"),_T("DesktopItem"),0,g_szPrivateProfile)!=0;
 	//キャンセル[表示項目]
 	g_Config.ListView.bCancelItem=GetPrivateProfileInt(_T("ListView"),_T("CancelItem"),0,g_szPrivateProfile)!=0;
 
 	//フレームを表示
-	g_Config.ListView.bDialogFrame=GetPrivateProfileInt(_T("ListView"),_T("DialogFrame"),1,g_szPrivateProfile)!=0;
+	g_Config.ListView.bDialogFrame=GetPrivateProfileInt(_T("ListView"),_T("DialogFrame"),0,g_szPrivateProfile)!=0;
 
-	//アイコン指定を正しい値に収める
-	g_Config.ListView.iIcon=(INRANGE(LISTICON_NO,g_Config.ListView.iIcon,LISTICON_BIG))?g_Config.ListView.iIcon:LISTICON_BIG;
-	//不透明度を範囲内に収める
-	g_Config.ListView.byAlpha=(INRANGE(0,g_Config.ListView.byAlpha,255))?g_Config.ListView.byAlpha:255;
+	//ダブルクリックとして判定する時間
+	g_Config.ListView.iDoubleClickTime=GetPrivateProfileInt(_T("ListView"),_T("DoubleClickTime"),GetDoubleClickTime(),g_szPrivateProfile);
+	g_Config.ListView.iDoubleClickTime=(INRANGE(10,g_Config.ListView.iDoubleClickTime,5000))?g_Config.ListView.iDoubleClickTime:GetDoubleClickTime();
+	//クリック+マウスホイール上下として判定する時間
+	g_Config.ListView.iMouseWheelClickTime=GetPrivateProfileInt(_T("ListView"),_T("MouseWheelClickTime"),g_Config.ListView.iDoubleClickTime-1000,g_szPrivateProfile);
+	g_Config.ListView.iMouseWheelClickTime=(INRANGE(10,g_Config.ListView.iMouseWheelClickTime,4900))?g_Config.ListView.iMouseWheelClickTime:GetDoubleClickTime()-100;
+
+	//カーソルを非表示にするまでの時間
+	g_Config.ListView.iHideCursorTime=GetPrivateProfileInt(_T("ListView"),_T("HideCursorTime"),-1,g_szPrivateProfile);
 
 
 	//ファイル名、ウインドウタイトル[表示項目]
@@ -292,13 +418,10 @@ void ReadPrivateProfile(){
 
 	//カラムの幅
 	g_Config.ListView.iFileNameWidth=GetPrivateProfileInt(_T("ListView"),_T("FileNameWidth"),DEFAULT_FILENAME_WIDTH,g_szPrivateProfile);
-	g_Config.ListView.iWindowTitleWidth=GetPrivateProfileInt(_T("ListView"),_T("WindowTitleWidth"),DEFAULT_WINDOWTITLE_WIDTH,g_szPrivateProfile);
-
-	//絶対値を取る
 	g_Config.ListView.iFileNameWidth=abs(g_Config.ListView.iFileNameWidth);
-	g_Config.ListView.iWindowTitleWidth=abs(g_Config.ListView.iWindowTitleWidth);
-
 	g_Config.ListView.iFileNameWidth=(INRANGE(0,g_Config.ListView.iFileNameWidth,GetSystemMetrics(SM_CXSCREEN)))?g_Config.ListView.iFileNameWidth:0;
+	g_Config.ListView.iWindowTitleWidth=GetPrivateProfileInt(_T("ListView"),_T("WindowTitleWidth"),DEFAULT_WINDOWTITLE_WIDTH,g_szPrivateProfile);
+	g_Config.ListView.iWindowTitleWidth=abs(g_Config.ListView.iWindowTitleWidth);
 	g_Config.ListView.iWindowTitleWidth=(INRANGE(0,g_Config.ListView.iWindowTitleWidth,GetSystemMetrics(SM_CXSCREEN)))?g_Config.ListView.iWindowTitleWidth:0;
 
 	//すべてのカラム幅が0の場合、すべて有効に
@@ -310,9 +433,11 @@ void ReadPrivateProfile(){
 
 	//検索方法[インクリメンタルサーチ]
 	g_Config.IncrementalSearch.iMatchMode=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MatchMode"),MATCH_PARTICAL,g_szPrivateProfile);
+	g_Config.IncrementalSearch.iMatchMode=(INRANGE(MATCH_FLEX,g_Config.IncrementalSearch.iMatchMode,MATCH_FLEX))?g_Config.IncrementalSearch.iMatchMode:MATCH_PARTICAL;
 
 	//Migemoモード[インクリメンタルサーチ]
 	g_Config.IncrementalSearch.iMigemoMode=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MigemoMode"),MIGEMO_NO,g_szPrivateProfile);
+	g_Config.IncrementalSearch.iMigemoMode=(INRANGE(MIGEMO_NO,g_Config.IncrementalSearch.iMatchMode,MIGEMO_ALWAYS))?g_Config.IncrementalSearch.iMigemoMode:MIGEMO_NO;
 
 	//左側の項目のみ検索[インクリメンタルサーチ]
 	g_Config.IncrementalSearch.bFirstColumnOnly=GetPrivateProfileInt(_T("IncrementalSearch"),_T("FirstColumnOnly"),0,g_szPrivateProfile)!=0;
@@ -327,14 +452,17 @@ void ReadPrivateProfile(){
 	g_Config.IncrementalSearch.bMigemoCaseSensitive=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MigemoCaseSensitive"),0,g_szPrivateProfile)!=0;
 
 	//Migemo検索を開始するまでの時間
-	g_Config.IncrementalSearch.iMigemoDelay=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MigemoDelay"),90,g_szPrivateProfile);
+	g_Config.IncrementalSearch.iMigemoDelay=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MigemoDelay"),30,g_szPrivateProfile);
 
-	//Migemoモードを範囲内に収める
-	g_Config.IncrementalSearch.iMigemoMode=(INRANGE(MIGEMO_NO,g_Config.IncrementalSearch.iMigemoMode,MIGEMO_ALWAYS))?g_Config.IncrementalSearch.iMigemoMode:MIGEMO_ALWAYS;
+	//Migemoを読み込んだままにする
+	g_Config.IncrementalSearch.bNoUnloadMigemo=GetPrivateProfileInt(_T("IncrementalSearch"),_T("NoUnloadMigemo"),1,g_szPrivateProfile)!=0;
 
 
-	//スタートアップに追加する(自動起動)
+	//自動起動する
 	g_Config.bAutoStart=GetPrivateProfileInt(_T("General"),_T("AutoStart"),0,g_szPrivateProfile)!=0;
+
+	//管理者権限で起動する
+	g_Config.bRunAsAdministrator=GetPrivateProfileInt(_T("General"),_T("RunAsAdministrator"),0,g_szPrivateProfile)!=0;
 
 	TCHAR szTmp[32]={};
 
@@ -343,26 +471,46 @@ void ReadPrivateProfile(){
 	g_Config.Background.iXOffset=GetPrivateProfileInt(_T("Background"),_T("xOffset"),0,g_szPrivateProfile);
 	g_Config.Background.iYOffset=GetPrivateProfileInt(_T("Background"),_T("yOffset"),0,g_szPrivateProfile);
 	g_Config.Background.byResizePercent=GetPrivateProfileInt(_T("Background"),_T("ResizePercent"),100,g_szPrivateProfile);
-	g_Config.Background.byAlpha=GetPrivateProfileInt(_T("Background"),_T("Alpha"),100,g_szPrivateProfile);
-
-	//大きさを範囲内に収める
 	g_Config.Background.byResizePercent=(INRANGE(0,g_Config.Background.byResizePercent,100))?g_Config.Background.byResizePercent:100;
-	//不透明度を範囲内に収める
-	g_Config.Background.byAlpha=(INRANGE(0,g_Config.Background.byAlpha,100))?g_Config.Background.byAlpha:100;
+	g_Config.Background.byOpacity=GetPrivateProfileInt(_T("Background"),_T("Opacity"),100,g_szPrivateProfile);
+	g_Config.Background.byOpacity=(INRANGE(0,g_Config.Background.byOpacity,100))?g_Config.Background.byOpacity:100;
 
 
 	//表示操作
-	g_Config.ShowWindow.bLeftTop=GetPrivateProfileInt(_T("ShowWindow"),_T("LeftTop"),0,g_szPrivateProfile)!=0;
-	g_Config.ShowWindow.bTop=GetPrivateProfileInt(_T("ShowWindow"),_T("Top"),0,g_szPrivateProfile)!=0;
-	g_Config.ShowWindow.bRightTop=GetPrivateProfileInt(_T("ShowWindow"),_T("RightTop"),0,g_szPrivateProfile)!=0;
-	g_Config.ShowWindow.bLeft=GetPrivateProfileInt(_T("ShowWindow"),_T("Left"),0,g_szPrivateProfile)!=0;
-	g_Config.ShowWindow.bRight=GetPrivateProfileInt(_T("ShowWindow"),_T("Right"),0,g_szPrivateProfile)!=0;
-	g_Config.ShowWindow.bLeftBottom=GetPrivateProfileInt(_T("ShowWindow"),_T("LeftBottom"),0,g_szPrivateProfile)!=0;
-	g_Config.ShowWindow.bBottom=GetPrivateProfileInt(_T("ShowWindow"),_T("Bottom"),0,g_szPrivateProfile)!=0;
-	g_Config.ShowWindow.bRightBottom=GetPrivateProfileInt(_T("ShowWindow"),_T("RightBottom"),1,g_szPrivateProfile)!=0;
+	for(UINT i=1;i<SCC_CENTER;i++){
+		g_Config.ShowWindow.ccCursorCorners[i].bValid=GetPrivateProfileInt(_T("ShowWindow"),CursorCorner_Table[i].szKeyName,(i==SCC_RIGHTBOTTOM)?1:0,g_szPrivateProfile)!=0;
+		g_Config.ShowWindow.ccCursorCorners[i].eDestCorner=(SCC_CORNERS)GetPrivateProfileInt(_T("ShowWindow"),CursorCorner_Table[i].szKeyNameCursor,CursorCorner_Table[i].eDefault,g_szPrivateProfile);
+	}
+	//選択項目にカーソルを移動[マウスの移動]
+	g_Config.ShowWindow.bMouseMoveCursorSelectedWindow=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseMoveCursorSelectedWindow"),0,g_szPrivateProfile)!=0;
+	//選択項目にカーソルを移動[ホットキー]
+	g_Config.ShowWindow.bHotKeyMoveCursorSelectedWindow=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorMouseSelectedWindow"),0,g_szPrivateProfile)!=0;
 	g_Config.ShowWindow.bMouseWheel=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseWheel"),0,g_szPrivateProfile)!=0;
-	g_Config.ShowWindow.wHotKey=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKey"),858,g_szPrivateProfile);
-
+	g_Config.ShowWindow.eHotKeyCursorCorner=(SCC_CORNERS)GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorCorner"),0,g_szPrivateProfile);
+	g_Config.ShowWindow.wHotKey=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKey"),23046,g_szPrivateProfile);
+	g_Config.ShowWindow.bMoveCursorAtStart=GetPrivateProfileInt(_T("ShowWindow"),_T("MoveCursorAtStart"),0,g_szPrivateProfile)!=0;
+	g_Config.ShowWindow.iCursorCornerDelay=GetPrivateProfileInt(_T("ShowWindow"),_T("CursorCornerDelay"),0,g_szPrivateProfile);
+	g_Config.ShowWindow.bMouseEachMonitor=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseEachMonitor"),true,g_szPrivateProfile)!=0;
+	g_Config.ShowWindow.iMouseCursorMarginHorizontal=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseCursorMarginHorizontal"),20,g_szPrivateProfile);
+	g_Config.ShowWindow.iMouseCursorMarginVertical=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseCursorMarginVertical"),20,g_szPrivateProfile);
+	g_Config.ShowWindow.iHotKeyCursorMarginHorizontal=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorMarginHorizontal"),20,g_szPrivateProfile);
+	g_Config.ShowWindow.iHotKeyCursorMarginVertical=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorMarginVertical"),20,g_szPrivateProfile);
+	//カーソルを閉じ込める
+	g_Config.ShowWindow.iMouseClipCursorMode=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseClipCursorMode"),CLIP_CURSOR_NO,g_szPrivateProfile);
+	g_Config.ShowWindow.iMouseClipCursorMode=(INRANGE(CLIP_CURSOR_NO,g_Config.ShowWindow.iMouseClipCursorMode,CLIP_CURSOR_ALL))?g_Config.ShowWindow.iMouseClipCursorMode:CLIP_CURSOR_NO;
+	g_Config.ShowWindow.iMouseClipCursorTime=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseClipCursorTime"),0,g_szPrivateProfile);
+	g_Config.ShowWindow.iHotKeyClipCursorMode=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyClipCursorMode"),CLIP_CURSOR_NO,g_szPrivateProfile);
+	g_Config.ShowWindow.iHotKeyClipCursorMode=(INRANGE(CLIP_CURSOR_NO,g_Config.ShowWindow.iHotKeyClipCursorMode,CLIP_CURSOR_ALL))?g_Config.ShowWindow.iHotKeyClipCursorMode:CLIP_CURSOR_NO;
+	g_Config.ShowWindow.iHotKeyClipCursorTime=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyClipCursorTime"),0,g_szPrivateProfile);
+	//画面端と判断する端からの距離
+	g_Config.ShowWindow.iLeftCornerDistance=GetPrivateProfileInt(_T("ShowWindow"),_T("LeftCornerDistance"),3,g_szPrivateProfile);
+	g_Config.ShowWindow.iLeftCornerDistance=(INRANGE(0,g_Config.ShowWindow.iLeftCornerDistance,1024))?g_Config.ShowWindow.iLeftCornerDistance:3;
+	g_Config.ShowWindow.iRightCornerDistance=GetPrivateProfileInt(_T("ShowWindow"),_T("RightCornerDistance"),3,g_szPrivateProfile);
+	g_Config.ShowWindow.iRightCornerDistance=(INRANGE(0,g_Config.ShowWindow.iRightCornerDistance,1024))?g_Config.ShowWindow.iRightCornerDistance:3;
+	g_Config.ShowWindow.iTopCornerDistance=GetPrivateProfileInt(_T("ShowWindow"),_T("TopCornerDistance"),3,g_szPrivateProfile);
+	g_Config.ShowWindow.iTopCornerDistance=(INRANGE(0,g_Config.ShowWindow.iTopCornerDistance,1024))?g_Config.ShowWindow.iTopCornerDistance:3;
+	g_Config.ShowWindow.iBottomCornerDistance=GetPrivateProfileInt(_T("ShowWindow"),_T("BottomCornerDistance"),3,g_szPrivateProfile);
+	g_Config.ShowWindow.iBottomCornerDistance=(INRANGE(0,g_Config.ShowWindow.iBottomCornerDistance,1024))?g_Config.ShowWindow.iBottomCornerDistance:3;
 
 
 	//ショートカットキー
@@ -373,7 +521,7 @@ void ReadPrivateProfile(){
 	   GetPrivateProfileInt(_T("ShortcutKey"),NULL,1,g_szPrivateProfile)){
 		SKEY sKey[]={
 			{VK_ESCAPE,IDM_KEY_CANCEL},
-			{VK_SPACE,IDM_KEY_AND},
+			{VK_SPACE,IDM_KEY_CENTERCURSOR},
 			{VK_RETURN,IDM_KEY_SWITCH},
 			{MAKEWORD('M',HOTKEYF_CONTROL),IDM_KEY_SWITCH},
 			{MAKEWORD('G',HOTKEYF_CONTROL),IDM_KEY_RESET},
@@ -487,7 +635,8 @@ void ReadPrivateProfile(){
 	//リストビューアイテムのデザイン
 	//デフォルト(通常行)
 	GetPrivateProfileString(_T("DefaultItemDesign"),_T("Font"),NULL,g_Config.DefaultItemDesign.szFont,ARRAY_SIZEOF(g_Config.DefaultItemDesign.szFont),g_szPrivateProfile);
-	g_Config.DefaultItemDesign.iFontSize=GetPrivateProfileInt(_T("DefaultItemDesign"),_T("FontSize"),0,g_szPrivateProfile);
+	g_Config.DefaultItemDesign.iFontSize=GetPrivateProfileInt(_T("DefaultItemDesign"),_T("FontSize"),MINIMUM_FONTSIZE,g_szPrivateProfile);
+	g_Config.DefaultItemDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.DefaultItemDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.DefaultItemDesign.iFontSize:MINIMUM_FONTSIZE;
 	g_Config.DefaultItemDesign.iFontStyle=GetPrivateProfileInt(_T("DefaultItemDesign"),_T("FontStyle"),0,g_szPrivateProfile);
 
 	GetPrivateProfileString(_T("DefaultItemDesign"),_T("TextColor"),_T("#000000"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
@@ -496,13 +645,11 @@ void ReadPrivateProfile(){
 	GetPrivateProfileString(_T("DefaultItemDesign"),_T("BackColor"),_T("#FFFFFF"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
 	g_Config.DefaultItemDesign.clrTextBk=StringToCOLORREF(szTmp);
 
-	//フォントサイズを範囲内に収める
-	//範囲外であればMINIMUM_FONTSIZE(==0、フォントサイズ変更なし)
-	g_Config.DefaultItemDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.DefaultItemDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.DefaultItemDesign.iFontSize:MINIMUM_FONTSIZE;
 
 	//選択行
 	GetPrivateProfileString(_T("SelectedItemDesign"),_T("Font"),NULL,g_Config.SelectedItemDesign.szFont,ARRAY_SIZEOF(g_Config.SelectedItemDesign.szFont),g_szPrivateProfile);
-	g_Config.SelectedItemDesign.iFontSize=GetPrivateProfileInt(_T("SelectedItemDesign"),_T("FontSize"),0,g_szPrivateProfile);
+	g_Config.SelectedItemDesign.iFontSize=GetPrivateProfileInt(_T("SelectedItemDesign"),_T("FontSize"),MINIMUM_FONTSIZE,g_szPrivateProfile);
+	g_Config.SelectedItemDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.SelectedItemDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.SelectedItemDesign.iFontSize:MINIMUM_FONTSIZE;
 	g_Config.SelectedItemDesign.iFontStyle=GetPrivateProfileInt(_T("SelectedItemDesign"),_T("FontStyle"),1,g_szPrivateProfile);
 
 	GetPrivateProfileString(_T("SelectedItemDesign"),_T("TextColor"),_T("#7BB2BD"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
@@ -510,10 +657,6 @@ void ReadPrivateProfile(){
 
 	GetPrivateProfileString(_T("SelectedItemDesign"),_T("BackColor"),_T("#003873"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
 	g_Config.SelectedItemDesign.clrTextBk=StringToCOLORREF(szTmp);
-
-	//フォントサイズを範囲内に収める
-	//範囲外であればMINIMUM_FONTSIZE(==0、フォントサイズ変更なし)
-	g_Config.SelectedItemDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.SelectedItemDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.SelectedItemDesign.iFontSize:MINIMUM_FONTSIZE;
 
 
 	//除外するファイル名たち(;区切り)
@@ -523,5 +666,61 @@ void ReadPrivateProfile(){
 	   g_Config.Exclude.szFileName[lstrlen(g_Config.Exclude.szFileName)-1]!=';'){
 		lstrcat(g_Config.Exclude.szFileName,_T(";"));
 	}
+
+
+	//ウインドウリストを表示するモニタ
+	g_Config.MultiMonitor.iActiveMonitorMode=GetPrivateProfileInt(_T("MultiMonitor"),_T("ActiveMonitorMode"),ACTIVEMONITOR_BY_CURSOR,g_szPrivateProfile);
+	g_Config.MultiMonitor.iActiveMonitorMode=(INRANGE(ACTIVEMONITOR_BY_CURSOR,g_Config.MultiMonitor.iActiveMonitorMode,ACTIVEMONITOR_BY_NAME))?g_Config.MultiMonitor.iActiveMonitorMode:ACTIVEMONITOR_BY_CURSOR;
+	//ウインドウリストを表示するモニタ名
+	GetPrivateProfileString(_T("MultiMonitor"),_T("MonitorName"),NULL,g_Config.MultiMonitor.szMonitorName,ARRAY_SIZEOF(g_Config.MultiMonitor.szMonitorName),g_szPrivateProfile);
+	//アクティブなモニタのウインドウのみ表示
+	g_Config.MultiMonitor.bOnlyActiveMonitor=GetPrivateProfileInt(_T("MultiMonitor"),_T("OnlyActiveMonitor"),false,g_szPrivateProfile)!=0;
+
+	//アクティブな仮想デスクトップのウインドウのみ表示
+	g_Config.VirtualDesktop.bOnlyActiveVirtualDesktop=GetPrivateProfileInt(_T("VirtualDesktop"),_T("OnlyActiveVirtualDesktop"),false,g_szPrivateProfile)!=0;
+
+	//コマンド
+	bool bCmdExist=false;
+
+	for(UINT i=1;i<=MAX_COMMAND;i++){
+		TCHAR szKey[24];
+
+		wsprintf(szKey,_T("Command%d"),i);
+		if(GetPrivateProfileInt(szKey,NULL,0,g_szPrivateProfile)==
+		   GetPrivateProfileInt(szKey,NULL,1,g_szPrivateProfile)){
+			bCmdExist=true;
+			break;
+		}
+	}
+
+	for(UINT i=1;i<=MAX_COMMAND;i++){
+		TCHAR szKey[24];
+
+		wsprintf(szKey,_T("Command%d"),i);
+
+		if(!bCmdExist&&i==1){
+			lstrcpy(g_Config.Command[i].szCommandName,_T("Open file location(&F)"));
+			g_Config.Command[i].uCommandMode=CMDMODE_OPEN;
+			g_Config.Command[i].uCommandOption=CMDOPT_CANCEL;
+			lstrcpy(g_Config.Command[i].szFilePath,_T("explorer"));
+			lstrcpy(g_Config.Command[i].szParameters,_T("%D"));
+			lstrcpy(g_Config.Command[i].szWorkingDirectory,_T(""));
+			g_Config.Command[i].uCmdShow=SW_SHOWNORMAL;
+		}else{
+			GetPrivateProfileString(szKey,_T("CommandName"),_T(""),g_Config.Command[i].szCommandName,ARRAY_SIZEOF(g_Config.Command[i].szCommandName),g_szPrivateProfile);
+
+			g_Config.Command[i].uCommandMode=GetPrivateProfileInt(szKey,_T("CommandMode"),CMDMODE_OPEN,g_szPrivateProfile);
+			g_Config.Command[i].uCommandMode=(INRANGE(CMDMODE_OPEN,g_Config.Command[i].uCommandMode,CMDMODE_ADMIN))?g_Config.Command[i].uCommandMode:CMDMODE_OPEN;
+
+			g_Config.Command[i].uCommandOption=GetPrivateProfileInt(szKey,_T("CommandOption"),CMDOPT_NONE,g_szPrivateProfile);
+			g_Config.Command[i].uCommandOption=(INRANGE(CMDOPT_NONE,g_Config.Command[i].uCommandOption,CMDOPT_CANCEL))?g_Config.Command[i].uCommandOption:CMDOPT_NONE;
+
+			GetPrivateProfileString(szKey,_T("FilePath"),_T(""),g_Config.Command[i].szFilePath,ARRAY_SIZEOF(g_Config.Command[i].szFilePath),g_szPrivateProfile);
+			GetPrivateProfileString(szKey,_T("Parameters"),_T(""),g_Config.Command[i].szParameters,ARRAY_SIZEOF(g_Config.Command[i].szParameters),g_szPrivateProfile);
+			GetPrivateProfileString(szKey,_T("WorkingDirectory"),_T(""),g_Config.Command[i].szWorkingDirectory,ARRAY_SIZEOF(g_Config.Command[i].szWorkingDirectory),g_szPrivateProfile);
+			g_Config.Command[i].uCmdShow=GetPrivateProfileInt(szKey,_T("CommandShow"),SW_SHOWNORMAL,g_szPrivateProfile);
+		}
+	}
+
 	return;
 }

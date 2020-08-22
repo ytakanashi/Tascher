@@ -1,12 +1,9 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual C++ Express 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Tascher", "Tascher.vcxproj", "{914F8344-53B4-4D29-87B3-1CB0FCDAF677}"
-	ProjectSection(ProjectDependencies) = postProject
-		{6697BB29-E744-421D-9334-47149BD49959} = {6697BB29-E744-421D-9334-47149BD49959}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MMHook", "Hook\MMHook.vcxproj", "{6697BB29-E744-421D-9334-47149BD49959}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,14 +21,6 @@ Global
 		{914F8344-53B4-4D29-87B3-1CB0FCDAF677}.Release|Win32.Build.0 = Release|Win32
 		{914F8344-53B4-4D29-87B3-1CB0FCDAF677}.Release|x64.ActiveCfg = Release|x64
 		{914F8344-53B4-4D29-87B3-1CB0FCDAF677}.Release|x64.Build.0 = Release|x64
-		{6697BB29-E744-421D-9334-47149BD49959}.Debug|Win32.ActiveCfg = Debug|Win32
-		{6697BB29-E744-421D-9334-47149BD49959}.Debug|Win32.Build.0 = Debug|Win32
-		{6697BB29-E744-421D-9334-47149BD49959}.Debug|x64.ActiveCfg = Debug|x64
-		{6697BB29-E744-421D-9334-47149BD49959}.Debug|x64.Build.0 = Debug|x64
-		{6697BB29-E744-421D-9334-47149BD49959}.Release|Win32.ActiveCfg = Release|Win32
-		{6697BB29-E744-421D-9334-47149BD49959}.Release|Win32.Build.0 = Release|Win32
-		{6697BB29-E744-421D-9334-47149BD49959}.Release|x64.ActiveCfg = Release|x64
-		{6697BB29-E744-421D-9334-47149BD49959}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

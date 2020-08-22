@@ -3,24 +3,25 @@
 マウスの移動とホイールの回転や、Migemoインクリメンタルサーチで絞り込んでウインドウを切り替えるソフトウェアです。  
 Alt+Tabの連打や、タスクバーのクリックよりも、素早く、簡単にウインドウの切り替え操作が出来る点が特徴です。  
 ウインドウやプロセスを操作する各種コマンドも実装しています。  
-マウス派の方、キーボード派の方、どちらにもおすすめです。
+マウス派の方、キーボード派の方、どちらにもおすすめです。  
+UWPアプリに対応しています。  
+マルチモニタにも少しだけ対応しています。
       
 ## Screenshot
 ![Tascherメイン](../..//wiki/Images/Tascher_ss.gif)  
       
 ## Download
-**[Download Binary Package / Installer](http://www16.atpages.jp/rayna/Tascher/)**
+**[Download Binary Package / Installer](http://frostmoon.sakura.ne.jp/Tascher/)**
       
 ## System requirements
 Windows XP/Vista/7/8/8.1/10  
 Win32API直打ち、かつCRT非依存ですので、VC++ランタイムも不要です。
       
 ## Installation
-zip書庫ファイルの場合、「**Tascher\*.zip**」を適当なフォルダに解凍して下さい。  
-インストーラの場合、「**Tascher\*_Setup.exe**」を実行してください。
+「**Tascher\*.zip**」を適当なフォルダに解凍して下さい。
 
 ### Migemo検索を使用する
-1. 「**bregonig.dll**」を[K.Takata's Web Pageさま](http://homepage3.nifty.com/k-takata/)からダウンロードし、  
+1. 「**bregonig.dll**」を[K.Takata's Web Pageさま](http://k-takata.o.oo7.jp/)からダウンロードし、  
 「Tascher.exe」と同じディレクトリに配置します。
 1. 「C/Migemo」を[香り屋さま](http://www.kaoriya.net/)からダウンロードし、  
 「**migemo.dll**」「**dict**」を「Tascher.exe」と同じディレクトリに配置します。
@@ -56,13 +57,14 @@ zip書庫ファイルの場合、「**Tascher\*.zip**」を適当なフォルダ
 ### デフォルトのショートカットキー割り当て
 |コマンド|文字列|ショートカットキー|
 |:--|:--|:--|
-|切り替え|switch|Enter<br>Ctrl+M<br>左クリック<br>Space(インクリメンタルサーチ中除く)|
+|切り替え|switch|Enter<br>Ctrl+M<br>左クリック|
+|切り替えてカーソルをウインドウ中央へ移動|centercursor|Space(インクリメンタルサーチ中はAND検索)|
 |キャンセル|cancel|Esc<br>Ctrl+右クリック|
 |操作リセット|reset|Ctrl+G|
 |前のアイテムを選択|prev|Ctrl+P<br>↑<br>マウスホイール上|
 |次のアイテムを選択|next|Ctrl+N<br>↓<br>マウスホイール下|
 |先頭のアイテムを選択|first|Ctrl+A|
-|末尾のアイテムを選択|lasst|Ctrl+E|
+|末尾のアイテムを選択|last|Ctrl+E|
 |設定|settings|Ctrl+S|
 |終了|quit|Ctrl+Q|
 |最小化|minimize|Ctrl+I|
@@ -70,7 +72,6 @@ zip書庫ファイルの場合、「**Tascher\*.zip**」を適当なフォルダ
 |閉じる|close|Ctrl+W|
 |大きさを元に戻す|restore|Ctrl+R|
 |最全面表示する/しない|topmost|Ctrl+T|
-|AND検索|and|Space(インクリメンタルサーチ中のみ)|
 |インクリメンタルサーチの文字列を1つ削る|bsstring|Backspace<br>Ctrl+H|
 |カラム入れ替え|swap|←<br>→|
 |先頭一致検索|forwardmatch|Ctrl+K|
@@ -85,9 +86,12 @@ zip書庫ファイルの場合、「**Tascher\*.zip**」を適当なフォルダ
       
 ## Special Thanks
 * KoRoN氏「[C/Migemo](http://www.kaoriya.net/)」
-* K.Takata氏「[bregonig.dll](http://homepage3.nifty.com/k-takata/)」
+* K.Takata氏「[bregonig.dll](http://k-takata.o.oo7.jp/)」
 * cogma氏「[cltc](http://cogma.sakura.ne.jp/)」
 * Takla氏「[窓替え](http://taklasoft.web.fc2.com/)」
+* kvakulo氏「[Switcheroo](https://github.com/kvakulo/Switcheroo)」
+* NTWind Software「[VistaSwitcher](https://www.ntwind.com/)」
+* Microsoft「[PowerToys Run](https://github.com/microsoft/PowerToys)」
         
 ## License
 NYSL Version 0.9982に準拠して配布されています。  
@@ -98,4 +102,4 @@ NYSL Version 0.9982に準拠して配布されています。
 <Y.R.Takanashi@gmail.com>  
 若しくは  
 BBS(以下URLよりアクセス可能)からお願いします。(Twitterも可)  
-最新版バイナリは[Frost Moon Project](http://www16.atpages.jp/rayna/)から入手することができます。
+最新版バイナリは[Frost Moon Project](http://frostmoon.sakura.ne.jp/)から入手することができます。

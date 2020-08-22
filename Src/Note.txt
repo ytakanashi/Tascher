@@ -15,7 +15,7 @@
  ・見れたものではありません。
  ・時代遅れのWin32API直打ちに加え、CRT非依存にするため、難儀な処理が数多あります。
  ・その上、古いバージョンのコードそのままで整理していません。
- ・あえてハンガリアン記法で書いています。
+ ・ハンガリアン記法をふんだんに取り入れていますがイマイチ統一できていません。
  ・参考になるような情報もありません。
  ...残念!
  ライセンスの条文については同梱の「NYSL_withfaq.TXT」をご覧下さいませ。
@@ -29,6 +29,35 @@
 
 
 ・Note
+ [Ver.1.63]
+     ・UWPアプリが最小化されている場合の対応について、ウインドウタイトルで処理するのではなく、
+       1.トップレベルのWindows.UI.Core.CoreWindowを列挙、そのプロセスIdからAppUserModelIdを取得。
+       2.ApplicationFrameWindowのウインドウハンドルから取得したAppUserModelIdと1で取得したAppUserModelIdを比較。
+       という処理に変更。
+     ・Windows7でスタートアップに登録されているプログラムを無効化すると、
+       HKLM\SOFTWARE\Microsoft\Shared Tools\MSConfig\startupfolder
+       以下にプログラム名(\は^に置換)でキーが作成されます。また、スタートアップディレクトリからファイルが削除されます。
+       この状態でスタートアップディレクトリに再度ファイルを配置するとmsconfig上では無効になっていますが自動起動します。
+     ・Windows8～だとタスクマネージャからスタートアップの無効化をすると、
+       HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\StartupFolder
+       以下にプログラム名の値が作成されます。
+       この状態だとスタートアップディレクトリにファイルが配置されていても自動起動しません。
+     ・値の先頭4バイトが有効化/無効化のフラグ、以降8バイトが無効にした日のFILETIME構造体のようです。
+       今回より「自動起動する」を設定した場合、スタートアップディレクトリへのショートカット作成に加え、上記レジストリ処理を行うようにしました。
+       よってアンインストールの際は「自動起動する」を無効化しないとレジストリを汚したままになってしまいます。
+     ・ドラッグ中かどうかの判定をカーソルの比較で行なうようにしました。
+       ドロップ禁止がole32.dllのMAKEINTRESOURCE(1)、ドロップOKがole32.dllのMAKEINTRESOURCE(3)でした。
+     ・マウスフックを廃止。RawInputで処理するようにしました。
+       Windows7以降、マウスフックは何度かタイムアウトするとフックが解除されてしまうらしいのでその対応他のため。
+     ・Windows10追加の仮想デスクトップ機能は列挙が難しそうなため、ウインドウ移動系の実装は見送り。
+     ・IVirtualDesktopManager::IsWindowOnCurrentVirtualDesktop()そのままだとモーダルダイアログやDelphiウインドウが上手く判定できません。
+       →モーダルダイアログはDS_MODALFRAMEもしくはWS_EX_DLGMODALFRAMEなら親ウインドウで判定。
+       →Delphiウインドウはサイズ0のオーナーウインドウで判定。
+       他にも色々と判定処理が必要です。
+     ・アイコン・ウインドウタイトルの取得及びウインドウの切り替えを別スレッド化しました。
+       重い処理をしているウインドウにTascherが巻き込まれにくくなったはず。
+       その分無慈悲なTerminateThread()があります。
+
  [Ver.1.62]
      ・migemo_setproc_int2char()で'[',']','~'でもマッチできるようになりました。
        migemo_setproc_int2char()でプロシージャを登録すると、0を返してmigemo側のデフォルトプロシージャに丸投げしようとしても、
@@ -44,7 +73,7 @@
            1.トップレベルの「Windows.UI.Core.CoreWindow」を列挙。
            2.↑のウインドウタイトルを含む「ApplicationFrameWindow」を親とする。
          という処理に。
-         ただ、これだと一部UWPアプリに対応出来ないと思われます。
+         ただ、これだと一部UWPアプリに対応出来ないと思われます。->Ver.1.63で処理を変更。
        ・UWPアプリのアイコンはSendMessage(WM_GETICON)やGetClassLongPtr(GCLP_HICON)で取得することができません。
          アイコン(HICON)取得方法は以下の通り。
            1.↑で取得した「Windows.UI.Core.CoreWindow」のウインドウハンドルからGetWindowThreadProcessId()でプロセスIDを取得。

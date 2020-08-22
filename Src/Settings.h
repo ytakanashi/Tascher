@@ -2,7 +2,7 @@
 //設定ダイアログ
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.62
+	Tascher Ver.1.63
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -37,6 +37,7 @@ enum TAB{
 	TAB_SHOWWINDOW,
 	TAB_SHORTCUTKEY,
 	TAB_MOUSE,
+	TAB_COMMAND,
 	TAB_DESIGN,
 	TAB_ADVANCED,
 	TAB_VERSION,

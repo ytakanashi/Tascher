@@ -2,7 +2,7 @@
 //様々な便利関数
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.62
+	Tascher Ver.1.63
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -34,7 +34,13 @@ struct SPINEDIT_TABLE{
 	int iMaximum;
 };
 
-//SetCornerCursor()
+struct MONITOR_INFO{
+	HMONITOR hMonitor;
+	RECT rc;
+	MONITORINFOEX info;
+};
+
+//SetCursorCorner()
 enum SCC_CORNERS{
 	SCC_NONE=0,
 	SCC_LEFTTOP=1,//左上
@@ -47,6 +53,7 @@ enum SCC_CORNERS{
 	SCC_RIGHTBOTTOM,//右下
 	SCC_CENTER,//中央
 };
+
 //CreateGUIFont()
 typedef enum{
 	SFONT_BOLD=1<<0,
@@ -56,14 +63,46 @@ typedef enum{
 }SFONT_TYPE;
 
 
+//文字列を置換
+bool StrReplace(TCHAR* pszStr,const TCHAR* pszTarget,const TCHAR* pszReplacement);
+
 //一つのファイルを選択
 bool OpenSingleFileDialog(HWND hWnd,TCHAR* pszResult,int iLength,const TCHAR* pszFilter,const TCHAR* pszTitle);
 
+//ディレクトリを選択
+bool SelectDirectory(HWND hWnd,TCHAR* pResult,const TCHAR* pszTitle=NULL,const TCHAR* pszDefaultDirectory=NULL);
+
 //画面中央にウインドウを表示
 bool SetCenterWindow(HWND hWnd);
+bool SetCenterWindow(HWND hWnd,HWND hForegroundWnd);
+bool SetCenterWindow(HWND hWnd,LPCTSTR lpszMonitorName);
+
+//カーソル移動先の四隅の座標を取得
+bool GetCursorCornerPos(POINT* ppt,SCC_CORNERS eCorner,RECT* prc,int iMarginHorizontal=20,int iMarginVertical=20);
 
 //カーソルを四隅に移動
-bool SetCornerCursor(HWND hWnd,SCC_CORNERS scwCorner,int iMargin=20);
+bool SetCursorCorner(HWND hWnd,SCC_CORNERS eCorner,int iMarginHorizontal=20,int iMarginVertical=20);
+
+//モニタ名からHMONITOR取得
+HMONITOR MonitorFromName(LPCTSTR lpszMonitorName);
+
+//モニタリストを取得
+MONITOR_INFO* AllocMonitorsList();
+
+//モニタリストを解放
+void FreeMonitorsList(MONITOR_INFO* pMonitorInfo);
+
+//指定したモニタにウインドウを移動
+bool MoveToMonitor(HWND hWnd,HMONITOR hDestMonitor);
+
+//画面中央にウインドウを表示(マルチモニタの場合カーソルがあるモニタ)
+bool SetCenterWindow(HWND hWnd);
+
+//画面中央にウインドウを表示(マルチモニタの場合指定したウインドウがあるモニタ)
+bool SetCenterWindow(HWND hWnd,HWND hForegroundWnd);
+
+//画面中央にウインドウを表示(マルチモニタの場合指定した名前のモニタ)
+bool SetCenterWindow(HWND hWnd,LPCTSTR lpszMonitorName);
 
 //カーソルをウインドウの中心に移動
 bool SetCenterCursor(HWND hWnd=NULL);
@@ -71,8 +110,17 @@ bool SetCenterCursor(HWND hWnd=NULL);
 //現在のカーソルの位置からコントロールのハンドルを取得
 HWND ControlFromPoint();
 
+//ウインドウが現在の仮想デスクトップ上に存在するか
+bool IsWindowOnCurrentVirtualDesktop(HWND hWnd);
+
 //ショートカットを作成
 bool CreateShortcut(LPCTSTR lpszShortcutFile,LPCTSTR lpszTargetFile,LPCTSTR lpszArgs,LPCTSTR lpszDescription,LPCTSTR lpszWorkingDirectory);
+
+//スタートアップ登録ファイルの有効/無効設定する
+bool EnableStartupApproved(LPCTSTR lpszShortcutFile,bool bEnable);
+
+//スタートアップ登録ファイルの有効/無効設定を削除
+bool RemoveStartupApproved(LPCTSTR lpszShortcutFile);
 
 //スピン+エディットコントロールの初期設定
 bool InitializeSpinEditControl(HWND hSpin,HWND hEdit,int iMinimum,int iMaximum,int iCurrent);
@@ -104,14 +152,11 @@ HFONT CreateGUIFont(LPCTSTR lpszFontName=NULL,int iSize=0,int iStyle=0);
 //論理フォントをコントロールに適用
 void SetFont(HWND hWnd,LPCTSTR lpszFontName=NULL,int iSize=0,int iStyle=0);
 
-//不動明度を設定
-bool _SetLayeredWindowAttributes(HWND hWnd,COLORREF crKey,BYTE byAlpha,DWORD dwFlags);
-
 //ホットキー登録
-bool RegistHotKey(HWND hWnd,int iItemId,WORD& pwHotkey);
+bool RegistHotKey(HWND hWnd,int iItemId,WORD& pwHotKey);
 
 //ホットキー登録解除
-bool UnregistHotKey(HWND hWnd,int iItemId,WORD& pwHotkey);
+bool UnregistHotKey(HWND hWnd,int iItemId,WORD& pwHotKey);
 
 //ウインドウをフォアグラウンドに持ってくる
 bool SetForegroundWindowEx(HWND hWnd);
@@ -131,10 +176,8 @@ bool GetKeyName(WORD wKey,BOOL bExtended,TCHAR* pszKey,UINT uBufferSize);
 //ホットキーを文字列に変換
 void GetHotKeyName(WORD wKey,TCHAR* pszKey,UINT uBufferSize);
 
-#if 0
 //デスクトップを表示する
 void ToggleDesktop();
-#endif
 
 //文字列をクリップボードにコピー
 bool SetClipboardText(HWND hWnd,const TCHAR* pszText,int iLength);
@@ -169,6 +212,15 @@ LPTSTR AllocProcessCommandLine(DWORD dwProcessId);
 //AllocProcessCommandLine()で取得したコマンドラインを解放
 void FreeProcessCommandLine(TCHAR* pszCommandLine);
 
+//管理者権限で実行中かどうか
+bool IsAdministratorProcess(DWORD dwProcessId);
+
+//プロセスからApplicationUserModelIdを取得
+bool GetAppUserModelIdFromProcess(DWORD dwProcessId,LPTSTR pszAppUserModelId,UINT uiBufferLength);
+
+//ウインドウからApplicationUserModelIdを取得
+bool GetAppUserModelIdFromWindow(HWND hWnd,LPTSTR pszAppUserModelId,UINT uiBufferLength);
+
 //キー入力を登録する
 void SetKeybrd(LPINPUT lpKey,WORD wVKey,bool KeyDown);
 
@@ -187,8 +239,19 @@ HICON GetSmallIcon(HWND hWnd,bool bUWPApp=false);
 //あの手この手でアイコンを取得[大きい]
 HICON GetLargeIcon(HWND hWnd,bool bUWPApp=false);
 
+//降格ShellExecute()
+bool ShellExecuteNonElevated(PCTSTR lpszFile,PCTSTR lpszParameters,PCTSTR lpszWorkingDirectory,int nShowCmd);
+
 //ウインドウハンドルからファイル名を取得する
 bool GetFileNameFromWindowHandle(HWND hWnd,LPTSTR lpFileName,DWORD dwFileNameLength);
 
+//ドラッグ中かどうか
+bool IsDragging();
+
+//カーソルがウインドウ内にあるか
+bool IsCursorInWindow(HWND hWnd);
+
+//OSバージョンを取得
+bool GetWindowsVersion(PRTL_OSVERSIONINFOW info);
 
 #endif //FUNCTION_H

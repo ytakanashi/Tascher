@@ -2,7 +2,7 @@
 //設定関係共通ヘッダファイル
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.63
+	Tascher Ver.1.64
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -13,39 +13,80 @@
 #*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*/
 
 
-#ifndef COMMONSETTINGS_H
-#define COMMONSETTINGS_H
+#ifndef TASCHER_COMMONSETTINGS_H
+#define TASCHER_COMMONSETTINGS_H
 
 #include"ListView.h"
 #include"resources/resource.h"
 
+HMONITOR MonitorFromName(LPCTSTR lpszMonitorName);
+
+#ifndef WM_MOUSEHWHEEL
+	//#if (_WIN32_WINNT >= 0x0600)
+	#define WM_MOUSEHWHEEL 0x020E
+#endif
+
+#ifndef RI_MOUSE_HWHEEL
+	//#if(WINVER >= 0x0600)
+	#define RI_MOUSE_HWHEEL 0x0800
+#endif
+
+//UWPApp判別に使用
+#ifndef WS_EX_NOREDIRECTIONBITMAP
+	#define WS_EX_NOREDIRECTIONBITMAP 0x00200000L
+#endif
+
+#ifndef WM_DPICHANGED
+	//#if(WINVER >= 0x0601)
+	#define WM_DPICHANGED       0x02E0
+#endif
+
+
+
 enum SCC_CORNERS;
 
-//ウインドウ幅
-#define DEFAULT_WINDOW_WIDTH 900
-//ウインドウ高さ
-#define DEFAULT_WINDOW_HEIGHT 450
+const int DEFAULT_FILENAME_WIDTH=150;
+const int DEFAULT_WINDOWTITLE_WIDTH=600;
 
-#define DEFAULT_FILENAME_WIDTH 100
-#define DEFAULT_WINDOWTITLE_WIDTH 400
+const int MINIMUM_ICONMARGIN=0;
+const int DEFAULT_ICONMARGIN=10;
+const int MAXIMUM_ICONMARGIN=128;
+
+const int MINIMUM_ICONMARGIN_LEFTRIGHT=0;
+const int DEFAULT_ICONMARGIN_LEFTRIGHT=10;
+const int MAXIMUM_ICONMARGIN_LEFTRIGHT=128;
 
 //タイムアウト
-#define DEFAULT_SELECT_TIMEOUT 1000
+const int DEFAULT_SELECT_TIMEOUT=1000;
 
 //フォント最小サイズ
 //0=フォントサイズ変更なし
-#define MINIMUM_FONTSIZE 0
+const int MINIMUM_FONTSIZE=0;
 //フォント最大サイズ
-#define MAXIMUM_FONTSIZE 30
+const int MAXIMUM_FONTSIZE=30;
 
 //最大ショートカットキー数
-#define MAX_SHORTCUTKEY 256
+const int MAX_SHORTCUTKEY=256;
 
 //最大コマンド数
-#define MAX_COMMAND 50
+const int MAX_COMMAND=50;
+
+//DirectWriteパラメータ
+const int MINIMUM_GAMMA=1000;
+const int DEFAULT_GAMMA=1900;
+const int MAXIMUM_GAMMA=3000;
+
+const int MINIMUM_ENHANCEDCONTRAST=0;
+const int MAXIMUM_ENHANCEDCONTRAST=200;
+
+const int MINIMUM_CLEARTYPELEVEL=0;
+const int MAXIMUM_CLEARTYPELEVEL=100;
+
+const int MAX_WEBBROWSER=5;
 
 
 enum{
+	LISTITEM_ICON,//アイコン
 	LISTITEM_FILENAME,//ファイル名
 	LISTITEM_WINDOWTITLE,//ウインドウタイトル
 	LISTITEM_NUM//要素数
@@ -54,8 +95,9 @@ enum{
 enum{
 	LISTICON_NO=0,//アイコンなし(大)
 	LISTICON_NO_SMALL,//アイコンなし(小)
-	LISTICON_SMALL,//小さなアイコン
-	LISTICON_BIG,//大きなアイコン
+	LISTICON_SMALL,//小さなアイコン(16x16)
+	LISTICON_BIG,//大きなアイコン(32x32)
+	LISTICON_BIG48,//大きなアイコン(48x48)
 };
 
 enum{
@@ -69,6 +111,13 @@ enum{
 	MIGEMO_LOWERCASE,//小文字入力で有効
 	MIGEMO_UPPERCASE,//大文字入力で有効
 	MIGEMO_ALWAYS,
+};
+
+enum{
+	INCREMENTALSEARCH_SEARCHWINDOWDESIGN_DEFAULT=0,//デフォルト
+	INCREMENTALSEARCH_SEARCHWINDOWDESIGN_MIGEMOMATCH,//Migemo検索一致
+	INCREMENTALSEARCH_SEARCHWINDOWDESIGN_MIGEMONOMATCH,//Migemo検索不一致
+	INCREMENTALSEARCH_SEARCHWINDOWDESIGN_NUM,
 };
 
 enum{
@@ -141,26 +190,50 @@ enum{
 	SMOUSE_UWHEEL,
 	//マウスホイール下
 	SMOUSE_DWHEEL,
+	//マウスホイール左
+	SMOUSE_LHWHEEL,
+	//マウスホイール右
+	SMOUSE_RHWHEEL,
 	//左クリック + マウスホイール上
 	SMOUSE_LCLICKUWHEEL,
 	//左クリック + マウスホイール下
 	SMOUSE_LCLICKDWHEEL,
+	//左クリック + マウスホイール左
+	SMOUSE_LCLICKLHWHEEL,
+	//左クリック + マウスホイール右
+	SMOUSE_LCLICKRHWHEEL,
 	//右クリック + マウスホイール上
 	SMOUSE_RCLICKUWHEEL,
 	//右クリック + マウスホイール下
 	SMOUSE_RCLICKDWHEEL,
+	//右クリック + マウスホイール左
+	SMOUSE_RCLICKLHWHEEL,
+	//右クリック + マウスホイール右
+	SMOUSE_RCLICKRHWHEEL,
 	//Shift + マウスホイール上
 	SMOUSE_USWHEEL,
 	//Shift + マウスホイール下
 	SMOUSE_DSWHEEL,
+	//Shift + マウスホイール左
+	SMOUSE_LSHWHEEL,
+	//Shift + マウスホイール右
+	SMOUSE_RSHWHEEL,
 	//Ctrl + マウスホイール上
 	SMOUSE_UCWHEEL,
 	//Ctrl + マウスホイール下
 	SMOUSE_DCWHEEL,
+	//Ctrl + マウスホイール左
+	SMOUSE_LCHWHEEL,
+	//Ctrl + マウスホイール右
+	SMOUSE_RCHWHEEL,
 	//Shift + Ctrl + マウスホイール上
 	SMOUSE_USCWHEEL,
 	//Shift + Ctrl + マウスホイール下
 	SMOUSE_DSCWHEEL,
+	//Shift + Ctrl + マウスホイール左
+	SMOUSE_LSCHWHEEL,
+	//Shift + Ctrl + マウスホイール右
+	SMOUSE_RSCHWHEEL,
 	//中央クリック
 	SMOUSE_MCLICK,
 	//中央ダブルクリック
@@ -213,10 +286,18 @@ enum{
 	SMOUSE_X1CLICKUWHEEL,
 	//X1クリック + マウスホイール下
 	SMOUSE_X1CLICKDWHEEL,
+	//X1クリック + マウスホイール左
+	SMOUSE_X1CLICKLHWHEEL,
+	//X1クリック + マウスホイール右
+	SMOUSE_X1CLICKRHWHEEL,
 	//X2クリック + マウスホイール上
 	SMOUSE_X2CLICKUWHEEL,
 	//X2クリック + マウスホイール下
 	SMOUSE_X2CLICKDWHEEL,
+	//X2クリック + マウスホイール左
+	SMOUSE_X2CLICKLHWHEEL,
+	//X2クリック + マウスホイール右
+	SMOUSE_X2CLICKRHWHEEL,
 
 	SMOUSE_NUM,
 };
@@ -230,6 +311,8 @@ enum{
 	MOUSEWHEEL_NO=0,
 	MOUSEWHEEL_UP,
 	MOUSEWHEEL_DOWN,
+	MOUSEHWHEEL_LEFT,
+	MOUSEHWHEEL_RIGHT,
 };
 
 enum{
@@ -360,6 +443,18 @@ static SMOUSETYPE_TABLE MouseType_Table[]={
 		_T("マウスホイール下"),
 	},
 	{
+		WM_MOUSEHWHEEL,
+		MOUSEHWHEEL_LEFT,
+		0,
+		_T("マウスホイール左"),
+	},
+	{
+		WM_MOUSEHWHEEL,
+		MOUSEHWHEEL_RIGHT,
+		0,
+		_T("マウスホイール右"),
+	},
+	{
 		WM_LBUTTONDOWN,
 		MOUSEWHEEL_UP,
 		MODF_LBUTTON,
@@ -370,6 +465,18 @@ static SMOUSETYPE_TABLE MouseType_Table[]={
 		MOUSEWHEEL_DOWN,
 		MODF_LBUTTON,
 		_T("左クリック + マウスホイール下"),
+	},
+	{
+		WM_LBUTTONDOWN,
+		MOUSEHWHEEL_LEFT,
+		MODF_LBUTTON,
+		_T("左クリック + マウスホイール左"),
+	},
+	{
+		WM_LBUTTONDOWN,
+		MOUSEHWHEEL_RIGHT,
+		MODF_LBUTTON,
+		_T("左クリック + マウスホイール右"),
 	},
 	{
 		WM_RBUTTONDOWN,
@@ -384,6 +491,18 @@ static SMOUSETYPE_TABLE MouseType_Table[]={
 		_T("右クリック + マウスホイール下"),
 	},
 	{
+		WM_RBUTTONDOWN,
+		MOUSEHWHEEL_LEFT,
+		MODF_RBUTTON,
+		_T("右クリック + マウスホイール左"),
+	},
+	{
+		WM_RBUTTONDOWN,
+		MOUSEHWHEEL_RIGHT,
+		MODF_RBUTTON,
+		_T("右クリック + マウスホイール右"),
+	},
+	{
 		WM_MOUSEWHEEL,
 		MOUSEWHEEL_UP,
 		MODF_SHIFT,
@@ -394,6 +513,18 @@ static SMOUSETYPE_TABLE MouseType_Table[]={
 		MOUSEWHEEL_DOWN,
 		MODF_SHIFT,
 		_T("Shift + マウスホイール下"),
+	},
+	{
+		WM_MOUSEHWHEEL,
+		MOUSEHWHEEL_LEFT,
+		MODF_SHIFT,
+		_T("Shift + マウスホイール左"),
+	},
+	{
+		WM_MOUSEHWHEEL,
+		MOUSEHWHEEL_RIGHT,
+		MODF_SHIFT,
+		_T("Shift + マウスホイール右"),
 	},
 	{
 		WM_MOUSEWHEEL,
@@ -408,6 +539,18 @@ static SMOUSETYPE_TABLE MouseType_Table[]={
 		_T("Ctrl + マウスホイール下"),
 	},
 	{
+		WM_MOUSEHWHEEL,
+		MOUSEHWHEEL_LEFT,
+		MODF_CONTROL,
+		_T("Ctrl + マウスホイール左"),
+	},
+	{
+		WM_MOUSEHWHEEL,
+		MOUSEHWHEEL_RIGHT,
+		MODF_CONTROL,
+		_T("Ctrl + マウスホイール右"),
+	},
+	{
 		WM_MOUSEWHEEL,
 		MOUSEWHEEL_UP,
 		MODF_SHIFT|MODF_CONTROL,
@@ -418,6 +561,18 @@ static SMOUSETYPE_TABLE MouseType_Table[]={
 		MOUSEWHEEL_DOWN,
 		MODF_SHIFT|MODF_CONTROL,
 		_T("Shift + Ctrl + マウスホイール下"),
+	},
+	{
+		WM_MOUSEHWHEEL,
+		MOUSEHWHEEL_LEFT,
+		MODF_SHIFT|MODF_CONTROL,
+		_T("Shift + Ctrl + マウスホイール左"),
+	},
+	{
+		WM_MOUSEHWHEEL,
+		MOUSEHWHEEL_RIGHT,
+		MODF_SHIFT|MODF_CONTROL,
+		_T("Shift + Ctrl + マウスホイール右"),
 	},
 	{
 		WM_MBUTTONDOWN,
@@ -577,6 +732,18 @@ static SMOUSETYPE_TABLE MouseType_Table[]={
 	},
 	{
 		WM_XBUTTONDOWN,
+		MOUSEHWHEEL_LEFT,
+		MODF_X1BUTTON,
+		_T("X1クリック + マウスホイール左"),
+	},
+	{
+		WM_XBUTTONDOWN,
+		MOUSEHWHEEL_RIGHT,
+		MODF_X1BUTTON,
+		_T("X1クリック + マウスホイール右"),
+	},
+	{
+		WM_XBUTTONDOWN,
 		MOUSEWHEEL_UP,
 		MODF_X2BUTTON,
 		_T("X2クリック + マウスホイール上"),
@@ -586,6 +753,18 @@ static SMOUSETYPE_TABLE MouseType_Table[]={
 		MOUSEWHEEL_DOWN,
 		MODF_X2BUTTON,
 		_T("X2クリック + マウスホイール下"),
+	},
+	{
+		WM_XBUTTONDOWN,
+		MOUSEHWHEEL_LEFT,
+		MODF_X2BUTTON,
+		_T("X2クリック + マウスホイール左"),
+	},
+	{
+		WM_XBUTTONDOWN,
+		MOUSEHWHEEL_RIGHT,
+		MODF_X2BUTTON,
+		_T("X2クリック + マウスホイール右"),
 	},
 };
 
@@ -852,6 +1031,16 @@ static SHORTCUTKEYCMD_TABLE ShortcutKeyCmd_Table[]={
 		_T("コマンドラインをコピー"),
 	},
 	{
+		IDM_KEY_ITEMTYPE_WINDOW,
+		_T("windowitem"),
+		_T("リストにウインドウを表示/非表示"),
+	},
+	{
+		IDM_KEY_ITEMTYPE_WEBBROWSERTAB,
+		_T("webbrowsertabitem"),
+		_T("リストにウェブブラウザタブを表示/非表示"),
+	},
+	{
 		IDM_KEY_INFO,
 		_T("info"),
 		_T("情報を表示"),
@@ -879,7 +1068,7 @@ static SHORTCUTKEYCMD_TABLE ShortcutKeyCmd_Table[]={
 	{
 		IDM_KEY_MENU,
 		_T("menu"),
-		_T("コマンドメニュー"),
+		_T("メインメニュー"),
 	},
 	{
 		IDM_KEY_COPYINFOMENU,
@@ -910,6 +1099,11 @@ static SHORTCUTKEYCMD_TABLE ShortcutKeyCmd_Table[]={
 		IDM_KEY_OPACITYMENU,
 		_T("opacitymenu"),
 		_T("opacityメニュー"),
+	},
+	{
+		IDM_KEY_ITEMTYPEMENU,
+		_T("itemtypemenu"),
+		_T("itemtypeメニュー"),
 	},
 	{
 		IDM_KEY_COMMANDMENU,
@@ -1221,6 +1415,12 @@ struct LISTVIEW{
 	//アイコン[表示項目]
 	int iIcon;
 
+	//ウインドウを表示する[表示項目]
+	bool bWindowItem;
+
+	//ウェブブラウザタブを表示する[表示項目]
+	bool bWebBrowserTabItem;
+
 	//「デスクトップ」を表示する[表示項目]
 	bool bDesktopItem;
 
@@ -1230,14 +1430,29 @@ struct LISTVIEW{
 	//リストビューカラムの並び順
 	int iColumnOrder[LISTITEM_NUM];
 
+	//アイコンカラムの幅(内部使用のため、IconSize+iIconMargin*2)
+	int iIconWidth;
+
 	//ファイル名カラムの幅
 	int iFileNameWidth;
 
 	//ウインドウタイトルカラムの幅
 	int iWindowTitleWidth;
 
+	//アイコンの余白
+	int iIconMargin;
+
+	//UWPアプリの背景色を描画しない
+	bool bUWPAppNoBackgroundColor;
+
+	//ウインドウからアイコンを取得
+	bool bIconFromWindow;
+
 	//フレームを表示
 	bool bDialogFrame;
+
+	//フレーム色
+	COLORREF clrDialogFrame;
 
 	//ダブルクリックとして判定する時間
 	int iDoubleClickTime;
@@ -1247,6 +1462,9 @@ struct LISTVIEW{
 
 	//カーソルを非表示にするまでの時間
 	int iHideCursorTime;
+
+	//カーソル位置にメニューを表示(マウス操作時のみ)
+	bool bPopupMenuCursorPos;
 };
 
 struct SHORTCUTKEY{
@@ -1261,6 +1479,25 @@ struct MOUSE{
 	SMOUSE sMouseTable[SMOUSE_NUM];
 };
 
+struct SEARCHWINDOWDESIGN{
+	//フォント名
+	TCHAR szFont[128];
+	//サイズ
+	int iFontSize;
+	//スタイル
+	int iFontStyle;
+
+	//文字色
+	COLORREF clrText;
+	//背景色
+	COLORREF clrTextBk;
+	//背景色(グラデーション)
+	COLORREF clrTextBkGradientEnd;
+
+	//検索文字列
+	TCHAR szTextFormat[32];
+};
+
 struct ITEMDESIGN{
 	//フォント名
 	TCHAR szFont[128];
@@ -1273,6 +1510,16 @@ struct ITEMDESIGN{
 	COLORREF clrText;
 	//背景色
 	COLORREF clrTextBk;
+	//背景色(グラデーション)
+	COLORREF clrTextBkGradientEnd;
+};
+
+struct DIRECTWRITE{
+	bool bDirectWrite;
+	UINT uRenderingMode;
+	UINT uGamma;//1-3 *1000
+	UINT uEnhancedContrast;//1-2 *100
+	UINT uClearTypeLevel;//The degree of ClearType level, from 0.0f (no ClearType) to 1.0f (full ClearType). *100
 };
 
 struct CURSORCORNER{
@@ -1337,6 +1584,11 @@ struct SHOWWINDOW{
 	int iRightCornerDistance;
 	int iTopCornerDistance;
 	int iBottomCornerDistance;
+
+	//フルスクリーン時は無効[マウスの移動]
+	bool bMouseDisableInFullScreenMode;
+	//フルスクリーン時は無効[ホットキー]
+	bool bHotKeyDisableInFullScreenMode;
 };
 
 struct INCREMENTALSEARCH{
@@ -1363,6 +1615,21 @@ struct INCREMENTALSEARCH{
 
 	//Migemoを読み込んだままにする
 	bool bNoUnloadMigemo;
+
+	//ツールチップデザイン
+	struct SEARCHWINDOWDESIGN DefaultSearchWindowDesign;
+
+	//Migemo検索一致
+	struct SEARCHWINDOWDESIGN MigemoMatchSearchWindowDesign;
+
+	//Migemo検索不一致
+	struct SEARCHWINDOWDESIGN MigemoNoMatchSearchWindowDesign;
+
+	//文字列表示位置マージン
+	int iMargin;
+
+	//不透明度
+	BYTE byOpacity;
 };
 
 struct BACKGROUND{
@@ -1460,6 +1727,13 @@ struct COMMAND{
 	UINT uCmdShow;
 };
 
+struct WEBBROWSER{
+	//対象ファイル名
+	TCHAR szFilePath[MAX_PATH];
+	//ポート番号(省略する場合は-1)
+	int iPort;
+};
+
 struct CONFIG{
 	//リストビュー全般
 	struct LISTVIEW ListView;
@@ -1476,6 +1750,9 @@ struct CONFIG{
 	//リストビューアイテムのデザイン
 	struct ITEMDESIGN DefaultItemDesign;
 	struct ITEMDESIGN SelectedItemDesign;
+
+	//DirectWrite
+	struct DIRECTWRITE DirectWrite;
 
 	//インクリメンタルサーチ
 	struct INCREMENTALSEARCH IncrementalSearch;
@@ -1500,8 +1777,66 @@ struct CONFIG{
 
 	//独自コマンド(1～50)
 	struct COMMAND Command[MAX_COMMAND+1];
+
+	//ウェブブラウザ
+	struct WEBBROWSER WebBrowser[MAX_WEBBROWSER+1];
+
+
+	HMONITOR GetActiveMonitor(){
+		HMONITOR hMonitor=NULL;
+
+		switch(MultiMonitor.iActiveMonitorMode){
+			case ACTIVEMONITOR_BY_WINDOW:
+				hMonitor=MonitorFromWindow(GetForegroundWindow(),MONITOR_DEFAULTTONEAREST);
+				break;
+			case ACTIVEMONITOR_BY_NAME:
+				hMonitor=MonitorFromName(MultiMonitor.szMonitorName);
+				if(hMonitor!=NULL)break;
+				//fall through
+			case ACTIVEMONITOR_BY_CURSOR:{
+				POINT pt={};
+
+				GetCursorPos(&pt);
+				hMonitor=MonitorFromPoint(pt,MONITOR_DEFAULTTONEAREST);
+				break;
+			}
+		}
+		return hMonitor;
+	}
+
+	UINT GetListIconSize(){
+		switch(ListView.iIcon){
+			case LISTICON_NO_SMALL:
+			case LISTICON_NO:
+				return 0;
+			case LISTICON_SMALL:
+				return 16;
+			case LISTICON_BIG:
+			default:
+				return 32;
+			case LISTICON_BIG48:
+				return 48;
+		}
+	}
+
+	UINT GetListIconHeight(){
+		switch(ListView.iIcon){
+			case LISTICON_NO_SMALL:
+				return 16;
+			case LISTICON_NO:
+				return 32;
+			case LISTICON_SMALL:
+				return 16;
+			case LISTICON_BIG:
+			default:
+				return 32;
+			case LISTICON_BIG48:
+				return 48;
+		}
+	}
+
 };
 
 extern struct CONFIG g_Config;
 
-#endif //COMMONSETTINGS_H
+#endif //TASCHER_COMMONSETTINGS_H

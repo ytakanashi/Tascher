@@ -2,7 +2,7 @@
 //共通ヘッダファイル
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.63
+	Tascher Ver.1.64
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -13,8 +13,8 @@
 #*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*/
 
 
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef TASCHER_STDAFX_H
+#define TASCHER_STDAFX_H
 
 #ifndef STRICT
 	#define STRICT
@@ -47,44 +47,36 @@
 
 #ifdef _DEBUG
 	#ifndef _WIN64
-		#define TASCHER_VERSION _T("Tascher Ver.1.63 <Debug>")
+		#define TASCHER_VERSION _T("Tascher Ver.1.64 <Debug>")
 	#else
-		#define TASCHER_VERSION _T("Tascher Ver.1.63 x64 <Debug>")
+		#define TASCHER_VERSION _T("Tascher Ver.1.64 x64 <Debug>")
 	#endif
 #else
 	#ifndef _WIN64
-		#define TASCHER_VERSION _T("Tascher Ver.1.63")
+		#define TASCHER_VERSION _T("Tascher Ver.1.64")
 	#else
-		#define TASCHER_VERSION _T("Tascher Ver.1.63 x64")
+		#define TASCHER_VERSION _T("Tascher Ver.1.64 x64")
 	#endif
 #endif
 
 #ifndef _DEBUG
-#ifdef _MSC_VER
-#pragma function(memset)
-void* __cdecl memset(void *pTarget,int value,size_t cb){
-	char* p=(char*)pTarget;
-	while(cb--)*p++=(char)value;
-	return pTarget;
-}
-#pragma function(memcpy)
-void* __cdecl memcpy(void* pDest,const void * pSrc,size_t cb){
-	void* pResult=pDest;
-	while(cb--){
-		*(char*)pDest=*(char*)pSrc;
-		pDest=(char*)pDest+1;
-		pSrc=(char*)pSrc+1;
-	}
-	return pResult;
-}
-#endif
-#if __cplusplus
-extern "C"
-#endif
-int _fltused=1;
+	#ifdef _MSC_VER
+		extern "C" void * __cdecl memset(void *, int, size_t);
+		#pragma intrinsic(memset)
+		extern "C" void* __cdecl memcpy(void* pDest,const void * pSrc,size_t cb);
+		#pragma intrinsic(memset)
+	#endif
+	#if __cplusplus
+		extern "C"
+	#endif
+	int _fltused;
 #endif
 
 //配列の要素数
 #define ARRAY_SIZEOF(array) (sizeof(array)/sizeof(array[0]))
 
-#endif //COMMON_H
+#ifndef SAFE_RELEASE
+#define SAFE_RELEASE(p) {if(p!=NULL){(p)->Release();(p)=NULL;}}
+#endif
+
+#endif //TASCHER_STDAFX_H

@@ -2,7 +2,7 @@
 //cfgファイル操作
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.63
+	Tascher Ver.1.64
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -15,9 +15,12 @@
 
 #include"StdAfx.h"
 #include"PrivateProfile.h"
-#include"Function.h"
+#include"CommonSettings.h"
+#include"Utilities.h"
 #include"Path.h"
 #include"resources/resource.h"
+#include<dwrite.h>
+
 
 TCHAR g_szPrivateProfile[MAX_PATH]={};
 
@@ -77,7 +80,7 @@ void GetPrivateProfilePath(){
 	TCHAR szFileName[32]={};
 
 	path::GetExeDirectory(g_szPrivateProfile,MAX_PATH);
-	LoadString(g_hInstance,IDS_FILENAME,(LPTSTR)&szFileName,sizeof(szFileName)-1);
+	LoadString(GetModuleHandle(NULL),IDS_FILENAME,(LPTSTR)&szFileName,sizeof(szFileName)-1);
 	wsprintf(g_szPrivateProfile,_T("%s\\%s.cfg"),g_szPrivateProfile,szFileName);
 	return;
 }
@@ -85,12 +88,14 @@ void GetPrivateProfilePath(){
 //整数を文字列に変換してPrivateProfileファイルに書き込む
 bool WINAPI WritePrivateProfileInt(LPCTSTR lpAppName,LPCTSTR lpKeyName,LONG_PTR lData,LPCTSTR lpFileName){
 	TCHAR szValue[256];
-	wsprintf(szValue,_T("%d"),lData);
+	wsprintf(szValue,_T("%ld"),lData);
 	return WritePrivateProfileString(lpAppName,lpKeyName,szValue,lpFileName)!=0;
 }
 
 //PrivateProfileファイルへ書き込む
-void WritePrivateProfile(HWND hWnd){
+void WritePrivateProfile(){
+	TCHAR szTmp[32]={};
+
 	//リストビュー全般
 	//動作
 	//ダブルクリックを使用しない[動作]
@@ -107,8 +112,6 @@ void WritePrivateProfile(HWND hWnd){
 	WritePrivateProfileInt(_T("ListView"),_T("DragMouseHover"),g_Config.ListView.bDragMouseHover,g_szPrivateProfile);
 	//ドラッグ中であればタイムアウトで確定
 	WritePrivateProfileInt(_T("ListView"),_T("DragTimeOut"),g_Config.ListView.bDragTimeOut,g_szPrivateProfile);
-	//タスクバー相当の表示[動作]
-//	WritePrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),g_Config.ListView.bTaskBarEquivalent,g_szPrivateProfile);
 	//2番目にアクティブなウインドウを選択[動作]
 	WritePrivateProfileInt(_T("ListView"),_T("SelectSecondWindow"),g_Config.ListView.bSelectSecondWindow,g_szPrivateProfile);
 	//サムネイルを表示[動作]
@@ -126,13 +129,26 @@ void WritePrivateProfile(HWND hWnd){
 	WritePrivateProfileInt(_T("ListView"),_T("Opacity"),g_Config.ListView.byOpacity,g_szPrivateProfile);
 	//アイコンなし(大)、アイコンなし(小)、小さなアイコン、大きなアイコン[表示項目]
 	WritePrivateProfileInt(_T("ListView"),_T("Icon"),g_Config.ListView.iIcon,g_szPrivateProfile);
+	//ウインドウ[表示項目]
+	WritePrivateProfileInt(_T("ListView"),_T("WindowItem"),g_Config.ListView.bWindowItem,g_szPrivateProfile);
+	//ウェブブラウザタブ[表示項目]
+	WritePrivateProfileInt(_T("ListView"),_T("WebBrowserTabItem"),g_Config.ListView.bWebBrowserTabItem,g_szPrivateProfile);
 	//デスクトップ[表示項目]
 	WritePrivateProfileInt(_T("ListView"),_T("DesktopItem"),g_Config.ListView.bDesktopItem,g_szPrivateProfile);
 	//キャンセル[表示項目]
 	WritePrivateProfileInt(_T("ListView"),_T("CancelItem"),g_Config.ListView.bCancelItem,g_szPrivateProfile);
 
+	//UWPアプリの背景色を描画しない
+	WritePrivateProfileInt(_T("ListView"),_T("UWPAppNoBackgroundColor"),g_Config.ListView.bUWPAppNoBackgroundColor,g_szPrivateProfile);
+
+	//ウインドウからアイコンを取得
+	WritePrivateProfileInt(_T("ListView"),_T("IconFromWindow"),g_Config.ListView.bIconFromWindow,g_szPrivateProfile);
+
 	//フレームを表示
 	WritePrivateProfileInt(_T("ListView"),_T("DialogFrame"),g_Config.ListView.bDialogFrame,g_szPrivateProfile);
+	//フレーム色
+	COLORREFToHex(szTmp,g_Config.ListView.clrDialogFrame);
+	WritePrivateProfileString(_T("ListView"),_T("DialogFrameColor"),szTmp,g_szPrivateProfile);
 
 	//ダブルクリックとして判定する時間
 	WritePrivateProfileInt(_T("ListView"),_T("DoubleClickTime"),g_Config.ListView.iDoubleClickTime,g_szPrivateProfile);
@@ -142,21 +158,27 @@ void WritePrivateProfile(HWND hWnd){
 	//カーソルを非表示にするまでの時間
 	WritePrivateProfileInt(_T("ListView"),_T("HideCursorTime"),g_Config.ListView.iHideCursorTime,g_szPrivateProfile);
 
+	//カーソル位置にメニューを表示(マウス操作時のみ)
+	WritePrivateProfileInt(_T("ListView"),_T("PopupMenuCursorPos"),g_Config.ListView.bPopupMenuCursorPos,g_szPrivateProfile);
+
 	//表示項目(カラム幅で決定)
 	//並び順
 	TCHAR szColumnOrder[12]={};
 
 	for(int i=0;i<LISTITEM_NUM;i++){
-		TCHAR sz[3]={};
+		TCHAR szOrder[12]={};
 
-		wsprintf(sz,_T("%d"),g_Config.ListView.iColumnOrder[i]);
-		lstrcat(szColumnOrder,sz);
+		wsprintf(szOrder,_T("%d"),g_Config.ListView.iColumnOrder[i]);
+		lstrcat(szColumnOrder,szOrder);
 	}
 	WritePrivateProfileString(_T("ListView"),_T("ColumnOrder"),szColumnOrder,g_szPrivateProfile);
 
 	//カラムの幅
 	WritePrivateProfileInt(_T("ListView"),_T("FileNameWidth"),g_Config.ListView.iFileNameWidth,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ListView"),_T("WindowTitleWidth"),g_Config.ListView.iWindowTitleWidth,g_szPrivateProfile);
+
+	//アイコンの余白
+	WritePrivateProfileInt(_T("ListView"),_T("IconMargin"),g_Config.ListView.iIconMargin,g_szPrivateProfile);
 
 	//検索方法[インクリメンタルサーチ]
 	WritePrivateProfileInt(_T("IncrementalSearch"),_T("MatchMode"),g_Config.IncrementalSearch.iMatchMode,g_szPrivateProfile);
@@ -182,14 +204,60 @@ void WritePrivateProfile(HWND hWnd){
 	//Migemoを読み込んだままにする
 	WritePrivateProfileInt(_T("IncrementalSearch"),_T("NoUnloadMigemo"),g_Config.IncrementalSearch.bNoUnloadMigemo,g_szPrivateProfile);
 
+	//インクリメンタルサーチウインドウデザイン
+	WritePrivateProfileString(_T("DefaultSearchWindowDesign"),_T("Font"),g_Config.IncrementalSearch.DefaultSearchWindowDesign.szFont,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("DefaultSearchWindowDesign"),_T("FontSize"),g_Config.IncrementalSearch.DefaultSearchWindowDesign.iFontSize,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.DefaultSearchWindowDesign.clrText);
+	WritePrivateProfileString(_T("DefaultSearchWindowDesign"),_T("TextColor"),szTmp,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.DefaultSearchWindowDesign.clrTextBk);
+	WritePrivateProfileString(_T("DefaultSearchWindowDesign"),_T("BackColor"),szTmp,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.DefaultSearchWindowDesign.clrTextBkGradientEnd);
+	WritePrivateProfileString(_T("DefaultSearchWindowDesign"),_T("BackGradientEndColor"),szTmp,g_szPrivateProfile);
+
+	WritePrivateProfileString(_T("DefaultSearchWindowDesign"),_T("TextFormat"),g_Config.IncrementalSearch.DefaultSearchWindowDesign.szTextFormat,g_szPrivateProfile);
+
+	//Migemo検索一致
+	WritePrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("Font"),g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.szFont,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("MigemoMatchSearchWindowDesign"),_T("FontSize"),g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.iFontSize,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.clrText);
+	WritePrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("TextColor"),szTmp,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.clrTextBk);
+	WritePrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("BackColor"),szTmp,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.clrTextBkGradientEnd);
+	WritePrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("BackGradientEndColor"),szTmp,g_szPrivateProfile);
+
+	WritePrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("TextFormat"),g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.szTextFormat,g_szPrivateProfile);
+
+	//Migemo検索不一致
+	WritePrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("Font"),g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.szFont,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("MigemoNoMatchSearchWindowDesign"),_T("FontSize"),g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.iFontSize,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.clrText);
+	WritePrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("TextColor"),szTmp,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.clrTextBk);
+	WritePrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("BackColor"),szTmp,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.clrTextBkGradientEnd);
+	WritePrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("BackGradientEndColor"),szTmp,g_szPrivateProfile);
+
+	WritePrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("TextFormat"),g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.szTextFormat,g_szPrivateProfile);
+
+	WritePrivateProfileInt(_T("IncrementalSearch"),_T("Margin"),g_Config.IncrementalSearch.iMargin,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("IncrementalSearch"),_T("Opacity"),g_Config.IncrementalSearch.byOpacity,g_szPrivateProfile);
+
 
 	//自動起動する
 	WritePrivateProfileInt(_T("General"),_T("AutoStart"),g_Config.bAutoStart,g_szPrivateProfile);
 
 	//管理者権限で起動する
 	WritePrivateProfileInt(_T("General"),_T("RunAsAdministrator"),g_Config.bRunAsAdministrator,g_szPrivateProfile);
-
-	TCHAR szTmp[32]={};
 
 	//背景画像
 	WritePrivateProfileString(_T("Background"),_T("Path"),g_Config.Background.szImagePath,g_szPrivateProfile);
@@ -229,6 +297,9 @@ void WritePrivateProfile(HWND hWnd){
 	WritePrivateProfileInt(_T("ShowWindow"),_T("RightCornerDistance"),g_Config.ShowWindow.iRightCornerDistance,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ShowWindow"),_T("TopCornerDistance"),g_Config.ShowWindow.iTopCornerDistance,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("ShowWindow"),_T("BottomCornerDistance"),g_Config.ShowWindow.iBottomCornerDistance,g_szPrivateProfile);
+	//フルスクリーン時は無効
+	WritePrivateProfileInt(_T("ShowWindow"),_T("MouseDisableInFullScreenMode"),g_Config.ShowWindow.bMouseDisableInFullScreenMode,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("ShowWindow"),_T("HotKeyDisableInFullScreenMode"),g_Config.ShowWindow.bHotKeyDisableInFullScreenMode,g_szPrivateProfile);
 
 
 	//ショートカットキー
@@ -254,7 +325,7 @@ void WritePrivateProfile(HWND hWnd){
 	for(UINT i=0;i<SMOUSE_NUM;i++){
 		if(!g_Config.Mouse.sMouseTable[i].uCmdId)continue;
 
-		wsprintf(szTmp,_T("%d"),g_Config.Mouse.sMouseTable[i].uMouseType);
+		wsprintf(szTmp,_T("%u"),g_Config.Mouse.sMouseTable[i].uMouseType);
 
 		for(UINT ii=0;ii<ARRAY_SIZEOF(ShortcutKeyCmd_Table);ii++){
 			if(ShortcutKeyCmd_Table[ii].uCmdId==g_Config.Mouse.sMouseTable[i].uCmdId){
@@ -277,6 +348,9 @@ void WritePrivateProfile(HWND hWnd){
 	COLORREFToHex(szTmp,g_Config.DefaultItemDesign.clrTextBk);
 	WritePrivateProfileString(_T("DefaultItemDesign"),_T("BackColor"),szTmp,g_szPrivateProfile);
 
+	COLORREFToHex(szTmp,g_Config.DefaultItemDesign.clrTextBkGradientEnd);
+	WritePrivateProfileString(_T("DefaultItemDesign"),_T("BackGradientEndColor"),szTmp,g_szPrivateProfile);
+
 	//選択行
 	WritePrivateProfileString(_T("SelectedItemDesign"),_T("Font"),g_Config.SelectedItemDesign.szFont,g_szPrivateProfile);
 	WritePrivateProfileInt(_T("SelectedItemDesign"),_T("FontSize"),g_Config.SelectedItemDesign.iFontSize,g_szPrivateProfile);
@@ -287,6 +361,17 @@ void WritePrivateProfile(HWND hWnd){
 
 	COLORREFToHex(szTmp,g_Config.SelectedItemDesign.clrTextBk);
 	WritePrivateProfileString(_T("SelectedItemDesign"),_T("BackColor"),szTmp,g_szPrivateProfile);
+
+	COLORREFToHex(szTmp,g_Config.SelectedItemDesign.clrTextBkGradientEnd);
+	WritePrivateProfileString(_T("SelectedItemDesign"),_T("BackGradientEndColor"),szTmp,g_szPrivateProfile);
+
+
+	//DirectWrite
+	WritePrivateProfileInt(_T("DirectWrite"),_T("DirectWrite"),g_Config.DirectWrite.bDirectWrite,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("DirectWrite"),_T("RenderingMode"),g_Config.DirectWrite.uRenderingMode,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("DirectWrite"),_T("Gamma"),g_Config.DirectWrite.uGamma,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("DirectWrite"),_T("EnhancedContrast"),g_Config.DirectWrite.uEnhancedContrast,g_szPrivateProfile);
+	WritePrivateProfileInt(_T("DirectWrite"),_T("ClearTypeLevel"),g_Config.DirectWrite.uClearTypeLevel,g_szPrivateProfile);
 
 
 	//除外するファイル名たち(;区切り)
@@ -306,7 +391,7 @@ void WritePrivateProfile(HWND hWnd){
 	for(UINT i=1;i<=MAX_COMMAND;i++){
 		TCHAR szKey[24];
 
-		wsprintf(szKey,_T("Command%d"),i);
+		wsprintf(szKey,_T("Command%u"),i);
 		if(lstrlen(g_Config.Command[i].szCommandName)){
 			WritePrivateProfileString(szKey,_T("CommandName"),g_Config.Command[i].szCommandName,g_szPrivateProfile);
 			WritePrivateProfileInt(szKey,_T("CommandMode"),g_Config.Command[i].uCommandMode,g_szPrivateProfile);
@@ -321,11 +406,22 @@ void WritePrivateProfile(HWND hWnd){
 		}
 	}
 
+	//ウェブブラウザタブ
+	for(UINT i=1;i<=MAX_WEBBROWSER;i++){
+		TCHAR szKey[24];
+
+		wsprintf(szKey,_T("WebBrowser%u"),i);
+		WritePrivateProfileString(szKey,_T("FilePath"),g_Config.WebBrowser[i].szFilePath,g_szPrivateProfile);
+		WritePrivateProfileInt(szKey,_T("Port"),g_Config.WebBrowser[i].iPort,g_szPrivateProfile);
+	}
+
 	return;
 }
 
 //PrivateProfileファイルから読み込む
 void ReadPrivateProfile(){
+	TCHAR szTmp[32]={};
+
 	//cfgファイルパス取得
 	GetPrivateProfilePath();
 
@@ -344,8 +440,6 @@ void ReadPrivateProfile(){
 	g_Config.ListView.bDragMouseHover=GetPrivateProfileInt(_T("ListView"),_T("DragMouseHover"),1,g_szPrivateProfile)!=0;
 	//ドラッグ中であればタイムアウトで確定
 	g_Config.ListView.bDragTimeOut=GetPrivateProfileInt(_T("ListView"),_T("DragTimeOut"),1,g_szPrivateProfile)!=0;
-	//タスクバー相当の表示[動作]
-//	g_Config.ListView.bTaskBarEquivalent=GetPrivateProfileInt(_T("ListView"),_T("TaskBarEquivalent"),1,g_szPrivateProfile)!=0;
 	//2番目にアクティブなウインドウを選択[動作]
 	g_Config.ListView.bSelectSecondWindow=GetPrivateProfileInt(_T("ListView"),_T("SelectSecondWindow"),1,g_szPrivateProfile)!=0;
 	//サムネイルを表示[動作] 表示位置[高度な設定]
@@ -362,19 +456,34 @@ void ReadPrivateProfile(){
 	g_Config.ListView.uThumbnailVerticalAlign=(INRANGE(THUMBNAIL_VERTICALALIGN_TOP,g_Config.ListView.uThumbnailVerticalAlign,THUMBNAIL_VERTICALALIGN_SELECTED_ITEM))?g_Config.ListView.uThumbnailVerticalAlign:THUMBNAIL_VERTICALALIGN_TOP;
 
 	//[不透明度]
-	g_Config.ListView.byOpacity=GetPrivateProfileInt(_T("ListView"),_T("Opacity"),100,g_szPrivateProfile);
+	g_Config.ListView.byOpacity=(BYTE)GetPrivateProfileInt(_T("ListView"),_T("Opacity"),100,g_szPrivateProfile);
 	g_Config.ListView.byOpacity=(INRANGE(0,g_Config.ListView.byOpacity,100))?g_Config.ListView.byOpacity:100;
 
-	//アイコンなし(大)、アイコンなし(小)、小さなアイコン、大きなアイコン[表示項目]
+	//アイコンなし(大)、アイコンなし(小)、小さなアイコン(16x16)、大きなアイコン(32x32)、大きなアイコン(48x48)[表示項目]
 	g_Config.ListView.iIcon=GetPrivateProfileInt(_T("ListView"),_T("Icon"),LISTICON_BIG,g_szPrivateProfile);
-	g_Config.ListView.iIcon=(INRANGE(LISTICON_NO,g_Config.ListView.iIcon,LISTICON_BIG))?g_Config.ListView.iIcon:LISTICON_BIG;
+	g_Config.ListView.iIcon=(INRANGE(LISTICON_NO,g_Config.ListView.iIcon,LISTICON_BIG48))?g_Config.ListView.iIcon:LISTICON_BIG;
+	//ウインドウ[表示項目]
+	g_Config.ListView.bWindowItem=GetPrivateProfileInt(_T("ListView"),_T("WindowItem"),1,g_szPrivateProfile)!=0;
+	//ウェブブラウザタブ[表示項目]
+	g_Config.ListView.bWebBrowserTabItem=GetPrivateProfileInt(_T("ListView"),_T("WebBrowserTabItem"),0,g_szPrivateProfile)!=0;
+	if(!g_Config.ListView.bWindowItem&&
+	   !g_Config.ListView.bWebBrowserTabItem)g_Config.ListView.bWindowItem=true;
 	//デスクトップ[表示項目]
 	g_Config.ListView.bDesktopItem=GetPrivateProfileInt(_T("ListView"),_T("DesktopItem"),0,g_szPrivateProfile)!=0;
 	//キャンセル[表示項目]
 	g_Config.ListView.bCancelItem=GetPrivateProfileInt(_T("ListView"),_T("CancelItem"),0,g_szPrivateProfile)!=0;
 
+	//UWPアプリの背景色を描画しない
+	g_Config.ListView.bUWPAppNoBackgroundColor=GetPrivateProfileInt(_T("ListView"),_T("UWPAppNoBackgroundColor"),1,g_szPrivateProfile)!=0;
+
+	//ウインドウからアイコンを取得
+	g_Config.ListView.bIconFromWindow=GetPrivateProfileInt(_T("ListView"),_T("IconFromWindow"),0,g_szPrivateProfile)!=0;
+
 	//フレームを表示
-	g_Config.ListView.bDialogFrame=GetPrivateProfileInt(_T("ListView"),_T("DialogFrame"),0,g_szPrivateProfile)!=0;
+	g_Config.ListView.bDialogFrame=GetPrivateProfileInt(_T("ListView"),_T("DialogFrame"),1,g_szPrivateProfile)!=0;
+	//フレーム色
+	GetPrivateProfileString(_T("ListView"),_T("DialogFrameColor"),_T("#007ACC"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.ListView.clrDialogFrame=StringToCOLORREF(szTmp);
 
 	//ダブルクリックとして判定する時間
 	g_Config.ListView.iDoubleClickTime=GetPrivateProfileInt(_T("ListView"),_T("DoubleClickTime"),GetDoubleClickTime(),g_szPrivateProfile);
@@ -386,21 +495,24 @@ void ReadPrivateProfile(){
 	//カーソルを非表示にするまでの時間
 	g_Config.ListView.iHideCursorTime=GetPrivateProfileInt(_T("ListView"),_T("HideCursorTime"),-1,g_szPrivateProfile);
 
+	//カーソル位置にメニューを表示(マウス操作時のみ)
+	g_Config.ListView.bPopupMenuCursorPos=GetPrivateProfileInt(_T("ListView"),_T("PopupMenuCursorPos"),0,g_szPrivateProfile)!=0;
+
 
 	//ファイル名、ウインドウタイトル[表示項目]
 	//並び順
 	TCHAR szColumnOrder[12]={};
 
-	GetPrivateProfileString(_T("ListView"),_T("ColumnOrder"),_T("01"),szColumnOrder,ARRAY_SIZEOF(szColumnOrder),g_szPrivateProfile);
+	GetPrivateProfileString(_T("ListView"),_T("ColumnOrder"),_T("012"),szColumnOrder,ARRAY_SIZEOF(szColumnOrder),g_szPrivateProfile);
 
 	//Orderが正しいが確認
 	TCHAR* pszColumnOrder=szColumnOrder;
-	TCHAR szCheck[2]={};//1234567の場合8に、2345678の場合9に[桁数+最小数値]
-	int iCount=2;
+	TCHAR szCheck[3]={};//1234567の場合8に、2345678の場合9に[桁数+最小数値]
+	int iCount=LISTITEM_ICON;
 
 	while(*pszColumnOrder){
-		if((*pszColumnOrder<(LISTITEM_FILENAME+_T('0')))||
-		   (*pszColumnOrder>(LISTITEM_WINDOWTITLE+_T('0')))||
+		if((*pszColumnOrder<(LISTITEM_ICON+_T('0')))||
+		   (*pszColumnOrder>((LISTITEM_NUM+1)+_T('0')))||
 		   (szCheck[*pszColumnOrder-_T('0')]++)){
 			break;
 		}
@@ -409,7 +521,21 @@ void ReadPrivateProfile(){
 	}
 
 	if(iCount||*pszColumnOrder){
-		lstrcpy(szColumnOrder,_T("01"));
+		//Orderが不正であればデフォルトに
+		lstrcpy(szColumnOrder,_T("012"));
+	}
+
+	if(szColumnOrder[0]!=_T('0')){
+		//LISTITEM_ICONを先頭に
+		TCHAR szOrderTmp[12]={};
+		lstrcpy(szOrderTmp,szColumnOrder);
+		TCHAR* pszOrderTmp=szOrderTmp;
+		int iIndex=1;
+		szColumnOrder[0]=_T('0');
+		while(*pszOrderTmp){
+			if(*pszOrderTmp!=_T('0'))szColumnOrder[iIndex++]=*pszOrderTmp;
+			pszOrderTmp++;
+		}
 	}
 
 	for(int i=0;i<LISTITEM_NUM;i++){
@@ -430,6 +556,12 @@ void ReadPrivateProfile(){
 		g_Config.ListView.iFileNameWidth=DEFAULT_FILENAME_WIDTH;
 		g_Config.ListView.iWindowTitleWidth=DEFAULT_WINDOWTITLE_WIDTH;
 	}
+
+	//アイコンの余白
+	g_Config.ListView.iIconMargin=GetPrivateProfileInt(_T("ListView"),_T("IconMargin"),DEFAULT_ICONMARGIN,g_szPrivateProfile);
+	g_Config.ListView.iIconMargin=abs(g_Config.ListView.iIconMargin);
+	g_Config.ListView.iIconMargin=(INRANGE(MINIMUM_ICONMARGIN,g_Config.ListView.iIconMargin,MAXIMUM_ICONMARGIN))?g_Config.ListView.iIconMargin:DEFAULT_ICONMARGIN;
+
 
 	//検索方法[インクリメンタルサーチ]
 	g_Config.IncrementalSearch.iMatchMode=GetPrivateProfileInt(_T("IncrementalSearch"),_T("MatchMode"),MATCH_PARTICAL,g_szPrivateProfile);
@@ -457,6 +589,56 @@ void ReadPrivateProfile(){
 	//Migemoを読み込んだままにする
 	g_Config.IncrementalSearch.bNoUnloadMigemo=GetPrivateProfileInt(_T("IncrementalSearch"),_T("NoUnloadMigemo"),1,g_szPrivateProfile)!=0;
 
+	//インクリメンタルサーチウインドウデザイン
+	GetPrivateProfileString(_T("DefaultSearchWindowDesign"),_T("Font"),NULL,g_Config.IncrementalSearch.DefaultSearchWindowDesign.szFont,ARRAY_SIZEOF(g_Config.DefaultItemDesign.szFont),g_szPrivateProfile);
+	g_Config.IncrementalSearch.DefaultSearchWindowDesign.iFontSize=GetPrivateProfileInt(_T("DefaultSearchWindowDesign"),_T("FontSize"),MINIMUM_FONTSIZE,g_szPrivateProfile);
+	g_Config.IncrementalSearch.DefaultSearchWindowDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.IncrementalSearch.DefaultSearchWindowDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.IncrementalSearch.DefaultSearchWindowDesign.iFontSize:MINIMUM_FONTSIZE;
+	g_Config.IncrementalSearch.DefaultSearchWindowDesign.iFontStyle=GetPrivateProfileInt(_T("DefaultSearchWindowDesign"),_T("FontStyle"),0,g_szPrivateProfile);
+
+	GetPrivateProfileString(_T("DefaultSearchWindowDesign"),_T("TextColor"),_T("#F0F0F0"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.DefaultSearchWindowDesign.clrText=StringToCOLORREF(szTmp);
+	GetPrivateProfileString(_T("DefaultSearchWindowDesign"),_T("BackColor"),_T("#141414"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.DefaultSearchWindowDesign.clrTextBk=StringToCOLORREF(szTmp);
+	GetPrivateProfileString(_T("DefaultSearchWindowDesign"),_T("BackGradientEndColor"),_T("#141414"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.DefaultSearchWindowDesign.clrTextBkGradientEnd=StringToCOLORREF(szTmp);
+
+	GetPrivateProfileString(_T("DefaultSearchWindowDesign"),_T("TextFormat"),_T("%S"),g_Config.IncrementalSearch.DefaultSearchWindowDesign.szTextFormat,ARRAY_SIZEOF(g_Config.IncrementalSearch.DefaultSearchWindowDesign.szTextFormat),g_szPrivateProfile);
+
+	//Migemo検索一致
+	GetPrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("Font"),NULL,g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.szFont,ARRAY_SIZEOF(g_Config.DefaultItemDesign.szFont),g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.iFontSize=GetPrivateProfileInt(_T("MigemoMatchSearchWindowDesign"),_T("FontSize"),MINIMUM_FONTSIZE,g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.iFontSize:MINIMUM_FONTSIZE;
+	g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.iFontStyle=GetPrivateProfileInt(_T("MigemoMatchSearchWindowDesign"),_T("FontStyle"),SFONT_BOLD,g_szPrivateProfile);
+
+	GetPrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("TextColor"),_T("#F0F0F0"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.clrText=StringToCOLORREF(szTmp);
+	GetPrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("BackColor"),_T("#141414"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.clrTextBk=StringToCOLORREF(szTmp);
+	GetPrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("BackGradientEndColor"),_T("#141414"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.clrTextBkGradientEnd=StringToCOLORREF(szTmp);
+
+	GetPrivateProfileString(_T("MigemoMatchSearchWindowDesign"),_T("TextFormat"),_T("[M] %S"),g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.szTextFormat,ARRAY_SIZEOF(g_Config.IncrementalSearch.MigemoMatchSearchWindowDesign.szTextFormat),g_szPrivateProfile);
+
+	//Migemo検索不一致
+	GetPrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("Font"),NULL,g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.szFont,ARRAY_SIZEOF(g_Config.DefaultItemDesign.szFont),g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.iFontSize=GetPrivateProfileInt(_T("MigemoNoMatchSearchWindowDesign"),_T("FontSize"),MINIMUM_FONTSIZE,g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.iFontSize:MINIMUM_FONTSIZE;
+	g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.iFontStyle=GetPrivateProfileInt(_T("MigemoNoMatchSearchWindowDesign"),_T("FontStyle"),0,g_szPrivateProfile);
+
+	GetPrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("TextColor"),_T("#868686"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.clrText=StringToCOLORREF(szTmp);
+
+	GetPrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("BackColor"),_T("#141414"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.clrTextBk=StringToCOLORREF(szTmp);
+	GetPrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("BackGradientEndColor"),_T("#141414"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.clrTextBkGradientEnd=StringToCOLORREF(szTmp);
+
+	GetPrivateProfileString(_T("MigemoNoMatchSearchWindowDesign"),_T("TextFormat"),_T("[m] %S"),g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.szTextFormat,ARRAY_SIZEOF(g_Config.IncrementalSearch.MigemoNoMatchSearchWindowDesign.szTextFormat),g_szPrivateProfile);
+
+	g_Config.IncrementalSearch.iMargin=GetPrivateProfileInt(_T("IncrementalSearch"),_T("Margin"),3,g_szPrivateProfile);
+	g_Config.IncrementalSearch.byOpacity=(BYTE)GetPrivateProfileInt(_T("IncrementalSearch"),_T("Opacity"),80,g_szPrivateProfile);
+	g_Config.IncrementalSearch.byOpacity=(INRANGE(0,g_Config.IncrementalSearch.byOpacity,100))?g_Config.IncrementalSearch.byOpacity:100;
+
 
 	//自動起動する
 	g_Config.bAutoStart=GetPrivateProfileInt(_T("General"),_T("AutoStart"),0,g_szPrivateProfile)!=0;
@@ -464,15 +646,13 @@ void ReadPrivateProfile(){
 	//管理者権限で起動する
 	g_Config.bRunAsAdministrator=GetPrivateProfileInt(_T("General"),_T("RunAsAdministrator"),0,g_szPrivateProfile)!=0;
 
-	TCHAR szTmp[32]={};
-
 	//背景画像
 	GetPrivateProfileString(_T("Background"),_T("Path"),NULL,g_Config.Background.szImagePath,ARRAY_SIZEOF(g_Config.Background.szImagePath),g_szPrivateProfile);
 	g_Config.Background.iXOffset=GetPrivateProfileInt(_T("Background"),_T("xOffset"),0,g_szPrivateProfile);
 	g_Config.Background.iYOffset=GetPrivateProfileInt(_T("Background"),_T("yOffset"),0,g_szPrivateProfile);
-	g_Config.Background.byResizePercent=GetPrivateProfileInt(_T("Background"),_T("ResizePercent"),100,g_szPrivateProfile);
+	g_Config.Background.byResizePercent=(BYTE)GetPrivateProfileInt(_T("Background"),_T("ResizePercent"),100,g_szPrivateProfile);
 	g_Config.Background.byResizePercent=(INRANGE(0,g_Config.Background.byResizePercent,100))?g_Config.Background.byResizePercent:100;
-	g_Config.Background.byOpacity=GetPrivateProfileInt(_T("Background"),_T("Opacity"),100,g_szPrivateProfile);
+	g_Config.Background.byOpacity=(BYTE)GetPrivateProfileInt(_T("Background"),_T("Opacity"),100,g_szPrivateProfile);
 	g_Config.Background.byOpacity=(INRANGE(0,g_Config.Background.byOpacity,100))?g_Config.Background.byOpacity:100;
 
 
@@ -487,7 +667,7 @@ void ReadPrivateProfile(){
 	g_Config.ShowWindow.bHotKeyMoveCursorSelectedWindow=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorMouseSelectedWindow"),0,g_szPrivateProfile)!=0;
 	g_Config.ShowWindow.bMouseWheel=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseWheel"),0,g_szPrivateProfile)!=0;
 	g_Config.ShowWindow.eHotKeyCursorCorner=(SCC_CORNERS)GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyCursorCorner"),0,g_szPrivateProfile);
-	g_Config.ShowWindow.wHotKey=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKey"),23046,g_szPrivateProfile);
+	g_Config.ShowWindow.wHotKey=(WORD)GetPrivateProfileInt(_T("ShowWindow"),_T("HotKey"),23046,g_szPrivateProfile);
 	g_Config.ShowWindow.bMoveCursorAtStart=GetPrivateProfileInt(_T("ShowWindow"),_T("MoveCursorAtStart"),0,g_szPrivateProfile)!=0;
 	g_Config.ShowWindow.iCursorCornerDelay=GetPrivateProfileInt(_T("ShowWindow"),_T("CursorCornerDelay"),0,g_szPrivateProfile);
 	g_Config.ShowWindow.bMouseEachMonitor=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseEachMonitor"),true,g_szPrivateProfile)!=0;
@@ -511,6 +691,9 @@ void ReadPrivateProfile(){
 	g_Config.ShowWindow.iTopCornerDistance=(INRANGE(0,g_Config.ShowWindow.iTopCornerDistance,1024))?g_Config.ShowWindow.iTopCornerDistance:3;
 	g_Config.ShowWindow.iBottomCornerDistance=GetPrivateProfileInt(_T("ShowWindow"),_T("BottomCornerDistance"),3,g_szPrivateProfile);
 	g_Config.ShowWindow.iBottomCornerDistance=(INRANGE(0,g_Config.ShowWindow.iBottomCornerDistance,1024))?g_Config.ShowWindow.iBottomCornerDistance:3;
+	//フルスクリーン時は無効
+	g_Config.ShowWindow.bMouseDisableInFullScreenMode=GetPrivateProfileInt(_T("ShowWindow"),_T("MouseDisableInFullScreenMode"),false,g_szPrivateProfile)!=0;
+	g_Config.ShowWindow.bHotKeyDisableInFullScreenMode=GetPrivateProfileInt(_T("ShowWindow"),_T("HotKeyDisableInFullScreenMode"),false,g_szPrivateProfile)!=0;
 
 
 	//ショートカットキー
@@ -639,24 +822,43 @@ void ReadPrivateProfile(){
 	g_Config.DefaultItemDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.DefaultItemDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.DefaultItemDesign.iFontSize:MINIMUM_FONTSIZE;
 	g_Config.DefaultItemDesign.iFontStyle=GetPrivateProfileInt(_T("DefaultItemDesign"),_T("FontStyle"),0,g_szPrivateProfile);
 
-	GetPrivateProfileString(_T("DefaultItemDesign"),_T("TextColor"),_T("#000000"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	GetPrivateProfileString(_T("DefaultItemDesign"),_T("TextColor"),_T("#FFFFFF"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
 	g_Config.DefaultItemDesign.clrText=StringToCOLORREF(szTmp);
 
-	GetPrivateProfileString(_T("DefaultItemDesign"),_T("BackColor"),_T("#FFFFFF"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	GetPrivateProfileString(_T("DefaultItemDesign"),_T("BackColor"),_T("#454545"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
 	g_Config.DefaultItemDesign.clrTextBk=StringToCOLORREF(szTmp);
+
+	GetPrivateProfileString(_T("DefaultItemDesign"),_T("BackGradientEndColor"),_T("#6C6C6C"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.DefaultItemDesign.clrTextBkGradientEnd=StringToCOLORREF(szTmp);
 
 
 	//選択行
 	GetPrivateProfileString(_T("SelectedItemDesign"),_T("Font"),NULL,g_Config.SelectedItemDesign.szFont,ARRAY_SIZEOF(g_Config.SelectedItemDesign.szFont),g_szPrivateProfile);
 	g_Config.SelectedItemDesign.iFontSize=GetPrivateProfileInt(_T("SelectedItemDesign"),_T("FontSize"),MINIMUM_FONTSIZE,g_szPrivateProfile);
 	g_Config.SelectedItemDesign.iFontSize=(INRANGE(MINIMUM_FONTSIZE,g_Config.SelectedItemDesign.iFontSize,MAXIMUM_FONTSIZE))?g_Config.SelectedItemDesign.iFontSize:MINIMUM_FONTSIZE;
-	g_Config.SelectedItemDesign.iFontStyle=GetPrivateProfileInt(_T("SelectedItemDesign"),_T("FontStyle"),1,g_szPrivateProfile);
+	g_Config.SelectedItemDesign.iFontStyle=GetPrivateProfileInt(_T("SelectedItemDesign"),_T("FontStyle"),SFONT_BOLD,g_szPrivateProfile);
 
-	GetPrivateProfileString(_T("SelectedItemDesign"),_T("TextColor"),_T("#7BB2BD"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	GetPrivateProfileString(_T("SelectedItemDesign"),_T("TextColor"),_T("#FFFFFF"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
 	g_Config.SelectedItemDesign.clrText=StringToCOLORREF(szTmp);
 
-	GetPrivateProfileString(_T("SelectedItemDesign"),_T("BackColor"),_T("#003873"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	GetPrivateProfileString(_T("SelectedItemDesign"),_T("BackColor"),_T("#347395"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
 	g_Config.SelectedItemDesign.clrTextBk=StringToCOLORREF(szTmp);
+
+	GetPrivateProfileString(_T("SelectedItemDesign"),_T("BackGradientEndColor"),_T("#89BBD6"),szTmp,ARRAY_SIZEOF(szTmp),g_szPrivateProfile);
+	g_Config.SelectedItemDesign.clrTextBkGradientEnd=StringToCOLORREF(szTmp);
+
+
+	//DirectWrite
+	g_Config.DirectWrite.bDirectWrite=GetPrivateProfileInt(_T("DirectWrite"),_T("DirectWrite"),true,g_szPrivateProfile)!=0;
+	g_Config.DirectWrite.uRenderingMode=GetPrivateProfileInt(_T("DirectWrite"),_T("RenderingMode"),DWRITE_RENDERING_MODE_DEFAULT,g_szPrivateProfile);
+	//v141_xp対応のためDWRITE_RENDERING_MODE_NATURAL_SYMMETRIC=5
+	g_Config.DirectWrite.uRenderingMode=(INRANGE(DWRITE_RENDERING_MODE_DEFAULT,g_Config.DirectWrite.uRenderingMode,/*DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC*/5))?g_Config.DirectWrite.uRenderingMode:/*DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC*/5;
+	g_Config.DirectWrite.uGamma=GetPrivateProfileInt(_T("DirectWrite"),_T("Gamma"),DEFAULT_GAMMA,g_szPrivateProfile);
+	g_Config.DirectWrite.uGamma=(INRANGE(MINIMUM_GAMMA,g_Config.DirectWrite.uGamma,MAXIMUM_GAMMA))?g_Config.DirectWrite.uGamma:1900;
+	g_Config.DirectWrite.uEnhancedContrast=GetPrivateProfileInt(_T("DirectWrite"),_T("EnhancedContrast"),MINIMUM_ENHANCEDCONTRAST,g_szPrivateProfile);
+	g_Config.DirectWrite.uEnhancedContrast=(INRANGE(MINIMUM_ENHANCEDCONTRAST,g_Config.DirectWrite.uEnhancedContrast,MAXIMUM_ENHANCEDCONTRAST))?g_Config.DirectWrite.uEnhancedContrast:MINIMUM_ENHANCEDCONTRAST;
+	g_Config.DirectWrite.uClearTypeLevel=GetPrivateProfileInt(_T("DirectWrite"),_T("ClearTypeLevel"),MAXIMUM_CLEARTYPELEVEL,g_szPrivateProfile);
+	g_Config.DirectWrite.uClearTypeLevel=(INRANGE(MINIMUM_CLEARTYPELEVEL,g_Config.DirectWrite.uClearTypeLevel,MAXIMUM_CLEARTYPELEVEL))?g_Config.DirectWrite.uClearTypeLevel:MAXIMUM_CLEARTYPELEVEL;
 
 
 	//除外するファイル名たち(;区切り)
@@ -685,7 +887,7 @@ void ReadPrivateProfile(){
 	for(UINT i=1;i<=MAX_COMMAND;i++){
 		TCHAR szKey[24];
 
-		wsprintf(szKey,_T("Command%d"),i);
+		wsprintf(szKey,_T("Command%u"),i);
 		if(GetPrivateProfileInt(szKey,NULL,0,g_szPrivateProfile)==
 		   GetPrivateProfileInt(szKey,NULL,1,g_szPrivateProfile)){
 			bCmdExist=true;
@@ -696,7 +898,7 @@ void ReadPrivateProfile(){
 	for(UINT i=1;i<=MAX_COMMAND;i++){
 		TCHAR szKey[24];
 
-		wsprintf(szKey,_T("Command%d"),i);
+		wsprintf(szKey,_T("Command%u"),i);
 
 		if(!bCmdExist&&i==1){
 			lstrcpy(g_Config.Command[i].szCommandName,_T("Open file location(&F)"));
@@ -720,6 +922,15 @@ void ReadPrivateProfile(){
 			GetPrivateProfileString(szKey,_T("WorkingDirectory"),_T(""),g_Config.Command[i].szWorkingDirectory,ARRAY_SIZEOF(g_Config.Command[i].szWorkingDirectory),g_szPrivateProfile);
 			g_Config.Command[i].uCmdShow=GetPrivateProfileInt(szKey,_T("CommandShow"),SW_SHOWNORMAL,g_szPrivateProfile);
 		}
+	}
+
+	//ウェブブラウザタブ
+	for(UINT i=1;i<=MAX_WEBBROWSER;i++){
+		TCHAR szKey[24];
+
+		wsprintf(szKey,_T("WebBrowser%u"),i);
+		GetPrivateProfileString(szKey,_T("FilePath"),_T(""),g_Config.WebBrowser[i].szFilePath,ARRAY_SIZEOF(g_Config.WebBrowser[i].szFilePath),g_szPrivateProfile);
+		g_Config.WebBrowser[i].iPort=GetPrivateProfileInt(szKey,_T("Port"),-1,g_szPrivateProfile);
 	}
 
 	return;

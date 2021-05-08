@@ -2,7 +2,7 @@
 //パス操作関数
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.63
+	Tascher Ver.1.64
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -46,11 +46,6 @@ bool GetExeDirectory(TCHAR* pszResult,const int iSize){
 		if(PathRemoveFileSpec(pszResult))bResult=true;
 	}
 	return bResult;
-}
-
-//ディレクトリであるか否か
-bool IsDirectory(const TCHAR* pszPath){
-	return (GetFileAttributes(pszPath)&FILE_ATTRIBUTE_DIRECTORY)!=0;
 }
 
 }//namespace

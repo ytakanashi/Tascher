@@ -2,7 +2,7 @@
 //リストビュー操作
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.63
+	Tascher Ver.1.64
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -15,17 +15,13 @@
 
 #include"StdAfx.h"
 #include"ListView.h"
-#include<commctrl.h>
 
-
-
-//カラムの位置を取得
-int ListView_GetColumnIndex(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,int iListItem){
-	if(!pListViewColumn_Table[iListItem].bVisible)return -1;
-	for(int i=iListItem;i>=0;i--){
-		if(!pListViewColumn_Table[i].bVisible)iListItem--;
-	}
-	return iListItem;
+//現在のカラム位置からカラム番号を取得
+int ListView_GetSubItemIndex(HWND hListView,int iIndex){
+	if(iIndex<0||iIndex>=LISTITEM_NUM)return -1;
+	int iOrders[LISTITEM_NUM]={};
+	ListView_GetColumnOrderArray(hListView,LISTITEM_NUM,&iOrders);
+	return iOrders[iIndex];
 }
 
 //全てのカラムの幅を取得
@@ -33,7 +29,8 @@ int ListView_GetAllColumnWidth(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Tabl
 	int iWidth=0;
 
 	for(int i=0;i<LISTITEM_NUM;i++){
-		if(pListViewColumn_Table[i].bVisible)iWidth+=*pListViewColumn_Table[i].piWidth;
+		if(pListViewColumn_Table[i].bVisible){iWidth+=*pListViewColumn_Table[i].piWidth;
+		}
 	}
 	return iWidth;
 }
@@ -49,17 +46,24 @@ int ListView_GetColumnCount(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table){
 }
 
 //カラムの情報を初期化
-void LisView_InitColumn(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,struct CONFIG* pConfig,HWND hListView){
+void ListView_InitColumn(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,struct CONFIG* pConfig,HWND hListView){
+	pListViewColumn_Table[LISTITEM_ICON].iListItem=LISTITEM_ICON;
+	//アイコンカラムは非表示にしない
+	pListViewColumn_Table[LISTITEM_ICON].bVisible=true;
+	pListViewColumn_Table[LISTITEM_ICON].piWidth=&pConfig->ListView.iIconWidth;
+	pListViewColumn_Table[LISTITEM_ICON].iDefaultWidth=pConfig->GetListIconSize()+g_Config.ListView.iIconMargin*2;
+
 	pListViewColumn_Table[LISTITEM_FILENAME].iListItem=LISTITEM_FILENAME;
-	pListViewColumn_Table[LISTITEM_FILENAME].bVisible=(pConfig->ListView.iFileNameWidth!=0)?true:false;
+	pListViewColumn_Table[LISTITEM_FILENAME].bVisible=pConfig->ListView.iFileNameWidth!=0;
 	pListViewColumn_Table[LISTITEM_FILENAME].piWidth=&pConfig->ListView.iFileNameWidth;
 	pListViewColumn_Table[LISTITEM_FILENAME].iDefaultWidth=DEFAULT_FILENAME_WIDTH;
 
 	pListViewColumn_Table[LISTITEM_WINDOWTITLE].iListItem=LISTITEM_WINDOWTITLE;
-	pListViewColumn_Table[LISTITEM_WINDOWTITLE].bVisible=(pConfig->ListView.iWindowTitleWidth!=0)?true:false;
+	pListViewColumn_Table[LISTITEM_WINDOWTITLE].bVisible=pConfig->ListView.iWindowTitleWidth!=0;
 	pListViewColumn_Table[LISTITEM_WINDOWTITLE].piWidth=&pConfig->ListView.iWindowTitleWidth;
 	pListViewColumn_Table[LISTITEM_WINDOWTITLE].iDefaultWidth=DEFAULT_WINDOWTITLE_WIDTH;
 
+	if(hListView==NULL)return;
 	for(int i=0;i<LISTITEM_NUM;i++){
 		ListView_SetColumnWidth(hListView,i,*pListViewColumn_Table[i].piWidth);
 	}
@@ -67,26 +71,16 @@ void LisView_InitColumn(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,struc
 }
 
 //カラムの並び順を変更
-bool ListView_ChangeColumnOrder(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,HWND hListView){
-	bool bResult=false;
-
+bool ListView_ChangeColumnOrder(HWND hListView){
 	int iOrders[][LISTITEM_NUM]={
-		{pListViewColumn_Table[0].iListItem,pListViewColumn_Table[1].iListItem},
-		{pListViewColumn_Table[1].iListItem,pListViewColumn_Table[0].iListItem}
+		{LISTITEM_ICON,LISTITEM_FILENAME,LISTITEM_WINDOWTITLE},
+		{LISTITEM_ICON,LISTITEM_WINDOWTITLE,LISTITEM_FILENAME},
 	};
 	int iCurrentOrders[LISTITEM_NUM];
 
 	ListView_GetColumnOrderArray(hListView,LISTITEM_NUM,&iCurrentOrders);
 
-	bResult=ListView_SetColumnOrderArray(hListView,LISTITEM_NUM,(iCurrentOrders[0]==iOrders[0][0])?iOrders[1]:iOrders[0])!=0;
-	return bResult;
-}
-
-//リストビューで使用するイメージリストを登録
-bool ListView_InitImageList(HWND hListView,bool bSmallImage){
-	return ListView_SetImageList(hListView,
-						  ((bSmallImage)?ImageList_Create(16,16,ILC_COLOR24,0,0):ImageList_Create(32,32,ILC_COLOR24,0,0)),
-						  LVSIL_SMALL)!=0;
+	return ListView_SetColumnOrderArray(hListView,LISTITEM_NUM,(iCurrentOrders[1]==iOrders[0][1])?iOrders[1]:iOrders[0])!=0;
 }
 
 //先頭を選択する
@@ -151,7 +145,7 @@ int ListView_GetSelectedItem(HWND hListView){
 
 //カーソル下にあるアイテムのIndexを取得する
 int ListView_GetHitItem(HWND hListView){
-	LVHITTESTINFO lvHitTestInfo;
+	LVHITTESTINFO lvHitTestInfo={};
 
 	GetCursorPos(&lvHitTestInfo.pt);
 	ScreenToClient(hListView,&lvHitTestInfo.pt);
@@ -159,22 +153,3 @@ int ListView_GetHitItem(HWND hListView){
 	ListView_HitTest(hListView,&lvHitTestInfo);
 	return (lvHitTestInfo.flags&LVHT_ONITEM)?lvHitTestInfo.iItem:-1;
 }
-
-/*
-//ListView_SetItemCountEx()ごとに最終行アイテムがちらつくので背景は自分で描画するように...
-//背景を設定する
-bool ListView_SetImage(HWND hListView,LPCTSTR lpszImagePath,int ixOffsetPercent,int iyOffsetPercent){
-	LVBKIMAGE lvBkImage={};
-
-	if(lstrlen(lpszImagePath)){
-		lvBkImage.ulFlags=LVBKIF_STYLE_NORMAL|LVBKIF_SOURCE_URL;
-		lvBkImage.pszImage=(LPTSTR)lpszImagePath;
-		lvBkImage.xOffsetPercent=ixOffsetPercent;
-		lvBkImage.yOffsetPercent=iyOffsetPercent;
-	}else{
-		lvBkImage.ulFlags=LVBKIF_SOURCE_NONE;
-	}
-
-	return ListView_SetBkImage(hListView,&lvBkImage)!=0;
-}
-*/

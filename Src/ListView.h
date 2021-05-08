@@ -2,7 +2,7 @@
 //リストビューのカラム
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.63
+	Tascher Ver.1.64
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -13,8 +13,8 @@
 #*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*/
 
 
-#ifndef LISTVIEW_H
-#define LISTVIEW_H
+#ifndef TASCHER_LISTVIEW_H
+#define TASCHER_LISTVIEW_H
 
 #include"CommonSettings.h"
 
@@ -28,8 +28,8 @@ struct LISTVIEWCOLUMN_TABLE{
 
 
 
-//カラムの位置を取得
-int ListView_GetColumnIndex(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,int iListItem);
+//現在のカラム位置からカラム番号を取得
+int ListView_GetSubItemIndex(HWND hListView,int iIndex);
 
 //全てのカラムの幅を取得
 int ListView_GetAllColumnWidth(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table);
@@ -38,13 +38,10 @@ int ListView_GetAllColumnWidth(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Tabl
 int ListView_GetColumnCount(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table);
 
 //カラムの情報を初期化
-void LisView_InitColumn(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,struct CONFIG* pConfig,HWND hListView);
+void ListView_InitColumn(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,struct CONFIG* pConfig,HWND hListView);
 
 //カラムの並び順を変更
-bool ListView_ChangeColumnOrder(struct LISTVIEWCOLUMN_TABLE* pListViewColumn_Table,HWND hListView);
-
-//リストビューで使用するイメージリストを登録
-bool ListView_InitImageList(HWND hListView,bool bSmallImage);
+bool ListView_ChangeColumnOrder(HWND hListView);
 
 //先頭を選択する
 void ListView_SelectFirstItem(HWND hListView);
@@ -73,4 +70,4 @@ int ListView_GetHitItem(HWND hListView);
 //背景を設定する
 //bool ListView_SetImage(HWND hListView,LPCTSTR lpszImagePath,int ixOffsetPercent=0,int iyOffsetPercent=0);
 
-#endif //LISTVIEW_H
+#endif //TASCHER_LISTVIEW_H

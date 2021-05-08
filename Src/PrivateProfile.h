@@ -2,7 +2,7 @@
 //cfgファイル操作
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.63
+	Tascher Ver.1.64
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -13,22 +13,13 @@
 #*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*/
 
 
-#ifndef PRIVATEPROFILE_H
-#define PRIVATEPROFILE_H
-
-#include"CommonSettings.h"
-
-
-//インスタンスハンドル
-extern HINSTANCE g_hInstance;
-
-//cfgファイルパスを取得
-void GetPrivateProfilePath(void);
+#ifndef TASCHER_PRIVATEPROFILE_H
+#define TASCHER_PRIVATEPROFILE_H
 
 //PrivateProfileファイルへ書き込む
-void WritePrivateProfile(HWND hWnd);
+void WritePrivateProfile();
 
 //PrivateProfileファイルから読み込む
-void ReadPrivateProfile(void);
+void ReadPrivateProfile();
 
-#endif //PRIVATEPROFILE_H
+#endif //TASCHER_PRIVATEPROFILE_H

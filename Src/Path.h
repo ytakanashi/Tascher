@@ -2,7 +2,7 @@
 //パス操作関数
 
 /*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#
-	Tascher Ver.1.63
+	Tascher Ver.1.64
 	Coded by x@rgs
 
 	This code is released under NYSL Version 0.9982
@@ -13,8 +13,8 @@
 #*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*/
 
 
-#ifndef PATH_H
-#define PATH_H
+#ifndef TASCHER_PATH_H
+#define TASCHER_PATH_H
 
 #ifdef __cplusplus
 namespace path{
@@ -24,9 +24,7 @@ namespace path{
 int CountCharacter(const TCHAR* pszStr,int iChar);
 //実行ファイルのディレクトリを取得
 bool GetExeDirectory(TCHAR* pszResult,const int iSize);
-//ディレクトリであるかどうか
-bool IsDirectory(const TCHAR* pszPath);
 
 }//namespace
 
-#endif //PATH_H
+#endif //TASCHER_PATH_H

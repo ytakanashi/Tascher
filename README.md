@@ -13,7 +13,7 @@ UWPアプリに対応しています。
 ![Tascherメイン](../..//wiki/Images/Tascher_ss.gif)  
       
 ## Download
-**[Download Binary Package / Installer](https://frostmoon.sakura.ne.jp/Tascher/)**
+**[Download Binary Package / Installer](https://frostmoon.sakura.ne.jp/Tascher/)**  
 [Debug Version](https://frostmoon.sakura.ne.jp/Tascher/debug.html)
       
 ## System requirements
